@@ -1,180 +1,50 @@
 {
     "marco": [
         {
-            "data": "2025-12-23T20:50:42.378136",
-            "co2": 141.238,
-            "km": 882.738,
-            "mezzo": "car",
-            "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
-        },
-        {
-            "data": "2025-12-23T21:12:32.167246",
-            "co2": 0.0,
-            "km": 222.494,
-            "mezzo": "piedi",
-            "start": "Foggia FG, Italia",
-            "end": "Taranto TA, Italia"
-        },
-        {
-            "data": "2025-12-24T10:23:57.063306",
-            "co2": 141.238,
-            "km": 882.738,
-            "mezzo": "car",
-            "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
-        },
-        {
-            "data": "2025-12-24T10:28:00.178605",
-            "co2": 0.0,
-            "km": 20.174,
-            "mezzo": "public_bus",
-            "start": "71042 Cerignola FG, Italia",
-            "end": "71045 Orta Nova FG, Italia"
-        },
-        {
-            "data": "2025-12-24T13:58:07.273230",
-            "co2": 141.238,
-            "km": 882.738,
-            "mezzo": "car",
-            "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
-        },
-        {
-            "data": "2025-12-24T14:04:24.954353",
-            "co2": 73.123,
-            "km": 457.017,
+            "data": "2026-01-20T18:50:07.965146",
+            "co2": 68.788,
+            "km": 429.922,
             "mezzo": "car",
             "start": "Bari BA, Italia",
             "end": "Roma RM, Italia"
         },
         {
-            "data": "2025-12-24T14:43:12.694722",
-            "co2": 141.238,
-            "km": 882.738,
-            "mezzo": "car",
+            "data": "2026-01-20T18:50:12.024109",
+            "co2": 0.0,
+            "km": 429.922,
+            "mezzo": "veicolo_elettrico",
             "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
-        },
-        {
-            "data": "2025-12-24T15:01:51.331550",
-            "co2": 141.238,
-            "km": 882.738,
-            "mezzo": "car",
-            "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
-        },
-        {
-            "data": "2025-12-24T15:10:10.320924",
-            "co2": 141.238,
-            "km": 882.738,
-            "mezzo": "car",
-            "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
+            "end": "Roma RM, Italia"
         }
     ],
     "licia": [
         {
-            "data": "2025-12-23T20:51:56.311894",
+            "data": "2026-01-20T18:50:35.085932",
             "co2": 0.0,
-            "km": 457.017,
-            "mezzo": "public_bus",
-            "start": "Bari BA, Italia",
-            "end": "Roma RM, Italia"
-        },
-        {
-            "data": "2025-12-23T20:53:45.945124",
-            "co2": 0.0,
-            "km": 133.618,
-            "mezzo": "public_bus",
-            "start": "Bari BA, Italia",
-            "end": "Foggia FG, Italia"
-        }
-    ],
-    "luca": [
-        {
-            "data": "2025-12-23T20:59:19.299327",
-            "co2": 0.0,
-            "km": 433.741,
-            "mezzo": "public_bus",
-            "start": "Roma RM, Italia",
-            "end": "Bari BA, Italia"
-        },
-        {
-            "data": "2025-12-23T21:01:01.712207",
-            "co2": 0.0,
-            "km": 457.017,
-            "mezzo": "public_bus",
-            "start": "Bari BA, Italia",
-            "end": "Roma RM, Italia"
-        },
-        {
-            "data": "2025-12-23T21:02:18.316229",
-            "co2": 0.0,
-            "km": 575.958,
-            "mezzo": "public_bus",
-            "start": "Roma RM, Italia",
-            "end": "Milano MI, Italia"
-        },
-        {
-            "data": "2025-12-23T21:03:47.282515",
-            "co2": 0.0,
-            "km": 882.738,
-            "mezzo": "public_bus",
-            "start": "Bari BA, Italia",
-            "end": "Milano MI, Italia"
+            "km": 188.089,
+            "mezzo": "bike",
+            "start": "71042 Cerignola FG, Italia",
+            "end": "Taranto TA, Italia"
         }
     ],
     "daniele": [
         {
-            "data": "2025-12-23T21:06:49.721889",
+            "data": "2026-01-20T18:50:53.613524",
             "co2": 0.0,
-            "km": 98.117,
+            "km": 4580.377,
             "mezzo": "public_bus",
             "start": "Bari BA, Italia",
-            "end": "71042 Cerignola FG, Italia"
-        },
-        {
-            "data": "2025-12-23T21:10:31.192525",
-            "co2": 0.0,
-            "km": 991.75,
-            "mezzo": "public_bus",
-            "start": "71042 Cerignola FG, Italia",
-            "end": "23041 Livigno SO, Italia"
+            "end": "Nordkapp, 9764 Nordkapp, Norvegia"
         }
     ],
-    "rosanna": [
+    "gaia": [
         {
-            "data": "2025-12-24T10:30:42.482849",
-            "co2": 0.0,
-            "km": 1.852,
-            "mezzo": "bike",
-            "start": "Viale di Levante, 71042 Cerignola FG, Italia",
-            "end": "Via dei Mille, 71042 Cerignola FG, Italia"
-        },
-        {
-            "data": "2025-12-24T10:55:02.733392",
-            "co2": 0.0,
-            "km": 30.487,
-            "mezzo": "bike",
-            "start": "71042 Cerignola FG, Italia",
-            "end": "85024 Lavello PZ, Italia"
-        },
-        {
-            "data": "2025-12-24T10:55:28.469868",
-            "co2": 4.878,
-            "km": 30.487,
+            "data": "2026-01-20T18:51:46.470344",
+            "co2": 68.788,
+            "km": 429.922,
             "mezzo": "car",
-            "start": "71042 Cerignola FG, Italia",
-            "end": "85024 Lavello PZ, Italia"
-        },
-        {
-            "data": "2025-12-24T10:57:16.385993",
-            "co2": 0.0,
-            "km": 850.774,
-            "mezzo": "public_bus",
-            "start": "Genova GE, Italia",
-            "end": "Foggia FG, Italia"
+            "start": "Bari BA, Italia",
+            "end": "Roma RM, Italia"
         }
     ]
 }

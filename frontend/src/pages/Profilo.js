@@ -28,28 +28,35 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
       const risposta = await fetch(`${URL_SERVER}/api/storico`, { credentials: 'include' });
       const storicoViaggi = await risposta.json(); 
       
-      if (Array.isArray(storicoViaggi)) {// se è un array valido
-        
-        
-        const sommaKm = storicoViaggi.reduce((totale, viaggio) => { //facccio i vari calcoli
-          const kmViaggio = viaggio.km || viaggio.km_percorsi || viaggio.distanza || 0;
-          return totale + parseFloat(kmViaggio);
+      if (Array.isArray(storicoViaggi)) {
+      
+        const CO2_AUTO_STANDARD = 0.120; // kg/km
+
+    
+        const sommaKm = storicoViaggi.reduce((totale, viaggio) => {
+          const kmViaggio = parseFloat(viaggio.km || viaggio.km_percorsi || viaggio.distanza || 0);
+          return totale + kmViaggio;
         }, 0);
 
-        const sommaCo2 = storicoViaggi.reduce((totale, viaggio) => {
-          const co2Viaggio = viaggio.co2 || viaggio.emissioni_co2 || 0;
-          return totale + parseFloat(co2Viaggio);
+        const sommaCo2Risparmiata = storicoViaggi.reduce((totale, viaggio) => {
+          const km = parseFloat(viaggio.km || viaggio.km_percorsi || viaggio.distanza || 0);
+          const co2EmessaReale = parseFloat(viaggio.co2 || viaggio.emissioni_co2 || 0);
+          const co2SeFosseAuto = km * CO2_AUTO_STANDARD;
+          let risparmioViaggio = co2SeFosseAuto - co2EmessaReale;
+          if (risparmioViaggio < 0) risparmioViaggio = 0;
+
+          return totale + risparmioViaggio;
         }, 0);
-        // aggiorno
+
         setStatistiche({
           totaleViaggi: storicoViaggi.length,
           totaleKm: sommaKm.toFixed(1),
-          totaleCo2: sommaCo2.toFixed(1),
-          alberi: (sommaCo2 / 20).toFixed(1) 
+          totaleCo2: sommaCo2Risparmiata.toFixed(1),
+          alberi: (sommaCo2Risparmiata / 20).toFixed(1) 
         });
       }
     } catch (errore) {
-      console.error("Impossibile recuperare lo storico:", errore); //errore generico
+      console.error("Impossibile recuperare lo storico:", errore);
     }
   };
 
