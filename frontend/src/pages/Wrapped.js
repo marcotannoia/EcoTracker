@@ -3,6 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './Wrapped.css'; 
 
 const URL_SERVER = 'http://localhost:5000';
+const MAPPA_MEZZI = {
+  "piedi": "A piedi",
+  "bike": "Bicicletta",
+  "car": "Auto",
+  "public_bus": "Bus",
+  "veicolo_elettrico": "Veicolo Elettrico"
+};
 
 function PaginaRiepilogo() {
   const { username: nomeUtente } = useParams(); 
@@ -123,7 +130,13 @@ function PaginaRiepilogo() {
                 <div className="stat-item">
                   <span className="stat-icon">❤️</span>
                   <div className="stat-info">
-                    <span className="stat-value capitalize">{datiRiepilogo.mezzo_preferito}</span>
+                    {/* 2. MODIFICA QUESTA RIGA */}
+                    {/* Prima era: {datiRiepilogo.mezzo_preferito} */}
+                    
+                    <span className="stat-value text-truncate" title={MAPPA_MEZZI[datiRiepilogo.mezzo_preferito]}>
+                      {MAPPA_MEZZI[datiRiepilogo.mezzo_preferito] || datiRiepilogo.mezzo_preferito}
+                    </span>
+
                     <span className="stat-label">Mezzo Preferito</span>
                   </div>
                 </div>

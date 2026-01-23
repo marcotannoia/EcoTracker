@@ -199,6 +199,11 @@
   border-color: #059669;
   color: #047857; 
 }
+.light-mode .login-error-box {
+  background: rgba(239, 68, 68, 0.2); /* Sfondo rosso leggero */
+  border-color: #dc2626;              /* Bordo rosso definito */
+  color: #7f1d1d;                     /* Testo ROSSO SCURO per leggibilità */
+}
 
 @media (max-width: 600px) {
   .brand-title { font-size: 3rem; }
