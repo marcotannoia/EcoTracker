@@ -78,3 +78,69 @@
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   z-index: 10000;
 }
+/* --- OTTIMIZZAZIONE MOBILE: FIX ALTEZZA E ADERENZA --- */
+@media (max-width: 768px) {
+
+  /* 1. CONTENITORE (Box Verde): Reset Totale Altezza */
+  .dock-panel {
+    display: flex !important;
+    
+    /* FORZA L'ALTEZZA A DIPENDERE DAL CONTENUTO */
+    height: auto !important;
+    min-height: 0 !important; /* Fondamentale: annulla altezze minime ereditate */
+    max-height: none !important;
+    
+    /* STRINGE IL BOX ATTORNO ALLE ICONE */
+    width: max-content !important; 
+    padding: 6px 8px !important; /* Padding bilanciato sopra/sotto */
+    gap: 8px !important;
+    
+    /* ALLINEAMENTO CENTRALE: Evita che le icone stiano sul fondo */
+    align-items: center !important; 
+    justify-content: center !important;
+
+    /* Posizionamento nella pagina */
+    position: fixed !important;
+    bottom: 15px !important;
+    border-radius: 18px !important;
+    
+    /* Reset margini interni che potrebbero causare spazio extra */
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* 2. I TASTI: Compatti e senza trasformazioni */
+  .dock-item, 
+  .dock-item:hover, 
+  .dock-item.active {
+    width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important; /* Blocca altezza minima */
+    
+    margin: 0 !important;
+    transform: none !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 3. ICONE SVG: Centrate perfettamente */
+  .dock-icon {
+    height: 100% !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
+  }
+
+  .dock-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+    transform: none !important;
+  }
+
+  /* 4. ETICHETTE: Rimozione totale dal flusso */
+  .dock-label {
+    display: none !important;
+  }
+}

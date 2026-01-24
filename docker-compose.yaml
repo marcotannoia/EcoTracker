@@ -6,9 +6,12 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./backend:/app       
+      - ./backend:/app
+      - /app/venv
+    env_file:
+      - ./backend/.env
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - FLASK_ENV=development
 
   frontend:
     build: ./frontend

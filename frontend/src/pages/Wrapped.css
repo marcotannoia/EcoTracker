@@ -10,9 +10,8 @@
   position: relative;
   padding: 0 20px;
   padding-top: 50px;
-  padding-bottom: 120px;
+  padding-bottom: 40px;
 }
-
 
 .wrapped-card-container {
   width: 100%;
@@ -107,9 +106,26 @@
   text-align: center;
 }
 
-/* Responsive */
+/* --- OTTIMIZZAZIONE MOBILE --- */
 @media (max-width: 768px) {
-  .wrapped-card { flex-direction: column; }
-  .wrapped-left-col { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
-  .stats-grid { grid-template-columns: 1fr; }
+  .wrapped-page {
+    padding-top: 30px;
+    padding-bottom: 140px !important; /* Spazio per la Dock */
+  }
+
+  .wrapped-card { 
+    flex-direction: column; 
+    height: auto;
+  }
+  
+  .wrapped-left-col { 
+    border-right: none; 
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    min-width: auto;
+    padding: 30px 20px;
+  }
+  
+  .wrapped-right-col {
+    padding: 25px 20px;
+  }
 }

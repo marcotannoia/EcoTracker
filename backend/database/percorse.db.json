@@ -1,7 +1,7 @@
 {
-    "marco": [
+    "marcotannoia": [
         {
-            "data": "2026-01-20T18:50:07.965146",
+            "data": "2026-01-23T19:55:22.677022",
             "co2": 68.788,
             "km": 429.922,
             "mezzo": "car",
@@ -9,37 +9,89 @@
             "end": "Roma RM, Italia"
         },
         {
-            "data": "2026-01-20T18:50:12.024109",
+            "data": "2026-01-24T11:01:33.606411",
+            "co2": 141.969,
+            "km": 887.308,
+            "mezzo": "car",
+            "start": "Bari BA, Italia",
+            "end": "Milano MI, Italia"
+        },
+        {
+            "data": "2026-01-24T11:04:02.492065",
+            "co2": 141.969,
+            "km": 887.308,
+            "mezzo": "car",
+            "start": "Bari BA, Italia",
+            "end": "Milano MI, Italia"
+        },
+        {
+            "data": "2026-01-24T11:09:50.354902",
             "co2": 0.0,
             "km": 429.922,
-            "mezzo": "veicolo_elettrico",
-            "start": "Bari BA, Italia",
-            "end": "Roma RM, Italia"
-        }
-    ],
-    "licia": [
-        {
-            "data": "2026-01-20T18:50:35.085932",
-            "co2": 0.0,
-            "km": 188.089,
-            "mezzo": "bike",
-            "start": "71042 Cerignola FG, Italia",
-            "end": "Taranto TA, Italia"
-        }
-    ],
-    "daniele": [
-        {
-            "data": "2026-01-20T18:50:53.613524",
-            "co2": 0.0,
-            "km": 4580.377,
             "mezzo": "public_bus",
             "start": "Bari BA, Italia",
-            "end": "Nordkapp, 9764 Nordkapp, Norvegia"
+            "end": "Roma RM, Italia"
+        },
+        {
+            "data": "2026-01-24T11:23:12.998631",
+            "co2": 141.969,
+            "km": 887.308,
+            "mezzo": "car",
+            "start": "Bari BA, Italia",
+            "end": "Milano MI, Italia"
+        },
+        {
+            "data": "2026-01-24T11:23:26.927147",
+            "co2": 0.0,
+            "km": 887.308,
+            "mezzo": "public_bus",
+            "start": "Bari BA, Italia",
+            "end": "Milano MI, Italia"
         }
     ],
-    "gaia": [
+    "marco": [
         {
-            "data": "2026-01-20T18:51:46.470344",
+            "data": "2026-01-24T07:23:28.058842",
+            "co2": 0.0,
+            "km": 429.922,
+            "mezzo": "public_bus",
+            "start": "Bari BA, Italia",
+            "end": "Roma RM, Italia"
+        },
+        {
+            "data": "2026-01-24T07:35:02.934138",
+            "co2": 0.0,
+            "km": 887.308,
+            "mezzo": "piedi",
+            "start": "Bari BA, Italia",
+            "end": "Milano MI, Italia"
+        },
+        {
+            "data": "2026-01-24T07:42:47.781941",
+            "co2": 0.0,
+            "km": 882.738,
+            "mezzo": "public_bus",
+            "start": "Bari BA, Italia",
+            "end": "Milano MI, Italia"
+        },
+        {
+            "data": "2026-01-24T07:44:38.842412",
+            "co2": 68.788,
+            "km": 429.922,
+            "mezzo": "car",
+            "start": "Bari BA, Italia",
+            "end": "Roma RM, Italia"
+        },
+        {
+            "data": "2026-01-24T07:44:58.100500",
+            "co2": 0.0,
+            "km": 429.922,
+            "mezzo": "piedi",
+            "start": "Bari BA, Italia",
+            "end": "Roma RM, Italia"
+        },
+        {
+            "data": "2026-01-24T07:55:46.621996",
             "co2": 68.788,
             "km": 429.922,
             "mezzo": "car",

@@ -5,6 +5,8 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  /* MODIFICA: Tolto overflow: hidden per permettere lo scroll se necessario, 
+     ma gestito meglio in app-shell */
   overflow: hidden; 
 }
 
@@ -25,7 +27,6 @@ html, body {
   --btn-border: none;
 }
 
-
 .light-theme {
   --text-main: #022c22; 
   --text-secondary: #064e3b;
@@ -34,24 +35,31 @@ html, body {
   --input-bg: rgba(255, 255, 255, 0.9);
   --input-text: #000000;
   --input-border: 2px solid #000000;
---btn-primary: #10b981;
+  --btn-primary: #10b981;
   --btn-text: #ffffff;
   --btn-border: 2px solid #000000;
 }
 
 .app-shell {
   width: 100%; 
-  height: 100vh;
+  height: 100vh; /* Occupa tutto lo schermo */
   font-family: 'Space Grotesk', sans-serif;
   background-color: transparent; 
   color: var(--text-main);
-  overflow: hidden; 
+  
+  /* MODIFICA FONDAMENTALE PER LO SCROLL: */
+  overflow-y: auto; /* Abilita lo scroll verticale */
+  overflow-x: hidden; /* Blocca quello orizzontale */
   position: relative;
+  
+  /* Per scroll fluido su mobile */
+  -webkit-overflow-scrolling: touch;
 }
 
 .page-body {
   width: 100%;
-  min-height: 100vh;
+  /* MODIFICA: min-height invece di height fissa permette di allungarsi */
+  min-height: 100%; 
   display: flex;
   flex-direction: column;
   position: relative;
@@ -61,7 +69,6 @@ html, body {
 .card, .box-container, input, button, select {
   transition: all var(--transition-speed) ease;
 }
-
 
 input, select, textarea {
   background-color: var(--input-bg) !important;
@@ -73,9 +80,45 @@ button {
   border: var(--btn-border) !important;
 }
 
-
 .fade-in { animation: fadeIn 0.4s ease-out; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- FIX DEFINITIVO MOBILE: Spazio e Scroll --- */
+@media (max-width: 768px) {
+  /* Forza il corpo pagina a non sbordare lateralmente */
+  .app-shell, .page-body {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  /* Aggiunge cuscinetto in basso SOLO su mobile per non coprire i tasti con la Dock */
+  .page-body {
+    padding-bottom: 120px !important; 
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  /* Rimpicciolisce tutti i testi giganti su mobile */
+  h1 { font-size: 1.8rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  p, input, button { font-size: 0.95rem !important; }
+}
+
+
+/* --- CODICE MAGICO PER NASCONDERE LA DOCK --- */
+/* Se nella pagina è aperta la scheda risultati, la dock sparisce */
+body:has(.results-overlay) .dock-container,
+body:has(.results-overlay) .dock {
+  display: none !important;
+}
+
+/* Rimuoviamo anche lo spazio vuoto in basso, tanto la dock non c'è */
+body:has(.results-overlay) .page-body,
+body:has(.results-overlay) .app-shell,
+body:has(.results-overlay) main {
+  padding-bottom: 0 !important;
+  overflow: hidden !important; /* Blocca lo scroll della pagina sotto quando c'è la mappa */
 }

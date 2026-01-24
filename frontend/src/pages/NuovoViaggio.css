@@ -1,23 +1,28 @@
+/* --- STILI BASE (Desktop) --- */
+
 .newtrip-page {
   width: 100%;
-  height: 100%; 
-  overflow: hidden;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   position: relative;
   padding: 0 20px;
- padding-top: 50px; 
+  padding-top: 50px;
+  padding-bottom: 40px;
 }
 
 .hero-header {
   text-align: center;
-  margin-bottom: 30px; 
+  margin-bottom: 30px;
   z-index: 2;
   animation: fadeInDown 0.8s ease-out;
   flex-shrink: 0;
 }
+
 .brand-title {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 4.5rem;
@@ -41,14 +46,13 @@
   opacity: 0.9;
 }
 
-
 .hero-content {
   width: 100%;
   display: flex;
   justify-content: center;
   z-index: 10;
   padding: 0;
-  margin-top: 0; 
+  margin-top: 0;
 }
 
 .search-card-container {
@@ -77,7 +81,6 @@
   margin-bottom: 10px;
 }
 
-
 .input-fields {
   display: flex;
   flex-direction: column;
@@ -96,13 +99,13 @@
   font-weight: 500;
   outline: none;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .card-input:focus {
   border-color: var(--btn-primary);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
-
 
 .vehicle-selector {
   display: flex;
@@ -153,7 +156,7 @@
 }
 
 .v-label {
-  font-size: 0.85rem; 
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -169,15 +172,18 @@
   cursor: pointer;
   box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25);
   transition: all 0.2s;
+  width: 100%;
 }
+
 .cta-search-btn:hover { transform: scale(1.02); filter: brightness(1.05); }
 
+/* --- SCHERMATA RISULTATI --- */
 
 .results-overlay {
   position: fixed;
   inset: 0;
   background: #000;
-  z-index: 10000;
+  z-index: 2147483647 !important;
   display: flex;
   animation: fadeIn 0.3s ease-out;
 }
@@ -238,28 +244,29 @@
 
 .arrow-green { color: var(--btn-primary); font-size: 1.2rem; }
 
-
 .res-right {
   flex: 1;
   min-width: 450px;
   background: #111111;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 40px 30px; 
+  padding: 40px 30px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 20px; 
+  gap: 20px;
   position: relative;
   box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+  overflow-y: auto;
 }
 
 .stat-box {
-  padding: 25px; 
+  padding: 25px;
   border-radius: 24px;
   position: relative;
   overflow: hidden;
   transition: transform 0.3s;
 }
+
 .stat-box:hover { transform: translateY(-5px); }
 
 .co2-box {
@@ -272,69 +279,56 @@
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-
 .stat-label {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 3px;
-  color: #ffffff;  
-  opacity: 1;      
+  color: #ffffff;
+  opacity: 1;
   margin-bottom: 8px;
-  font-weight: 700; 
+  font-weight: 700;
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 .stat-giant {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 3rem; 
+  font-size: 3rem;
   font-weight: 800;
   display: block;
   line-height: 1;
   margin-bottom: 8px;
-  
-  color: #ffffff; 
-  background: none; 
-  -webkit-text-fill-color: initial; 
-  word-wrap: break-word; 
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3); 
+  color: #ffffff;
+  background: none;
+  -webkit-text-fill-color: initial;
+  word-wrap: break-word;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-.stat-sub { 
-  font-size: 0.85rem; 
+.stat-sub {
+  font-size: 0.85rem;
   color: #d1d5db;
-  line-height: 1.4; 
+  line-height: 1.4;
 }
 
 .tree-icon-bg {
   position: absolute;
   top: 20px; right: 20px;
-  font-size: 3rem; 
-  opacity: 0.2; 
+  font-size: 3rem;
+  opacity: 0.2;
   filter: grayscale(1);
 }
 
 .stat-desc {
-  font-size: 0.95rem; 
-  font-weight: 500; 
-  color: #e5e7eb; 
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #e5e7eb;
   line-height: 1.4;
 }
 
+/* BOTTONE RIMOSSO */
 .new-search-btn {
-  margin-top: auto;
-  width: 100%; height: 70px; 
-  background: var(--btn-primary);
-  color: #fff;
-  border: none; border-radius: 20px;
-  font-size: 1.1rem; 
-  font-weight: 800; letter-spacing: 1px;
-  cursor: pointer;
-  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2);
-  transition: all 0.2s ease;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: none !important;
 }
-.new-search-btn:hover { transform: scale(1.02); box-shadow: 0 15px 50px rgba(16, 185, 129, 0.4); filter: brightness(1.1); }
-.new-search-btn::before { content: "↺"; font-size: 1.3rem; }
 
 .close-icon {
   position: absolute; top: 30px; right: 30px;
@@ -343,8 +337,8 @@
   border-radius: 50%; color: #fff; font-size: 1.2rem;
   cursor: pointer; z-index: 100; transition: all 0.2s; display: grid; place-items: center;
 }
-.close-icon:hover { background: #ef4444; border-color: #ef4444; transform: rotate(90deg); }
 
+.close-icon:hover { background: #ef4444; border-color: #ef4444; transform: rotate(90deg); }
 
 .light-mode .brand-title {
   background: linear-gradient(135deg, var(--btn-primary) 20%, #a7f3d0 80%, #ffffff 100%);
@@ -357,12 +351,100 @@
   color: #059669;
 }
 
-@media (max-width: 600px) {
-  .newtrip-page { padding-top: 30px; }
-  .results-content-card { flex-direction: column; }
-  .res-left { height: 40%; flex: none; }
-  .res-right { height: 60%; flex: none; border-left: none; border-top: 1px solid rgba(255,255,255,0.1); }
-  .stat-giant { font-size: 2.5rem; } 
-}
-
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- OTTIMIZZAZIONE MOBILE (Fix Risultati) --- */
+
+@media (max-width: 768px) {
+  
+  .newtrip-page {
+    padding-top: 30px;
+    padding-bottom: 140px !important;
+  }
+
+  .brand-title { font-size: 2.5rem; }
+  
+  .main-search-card {
+    padding: 25px 20px;
+    border-radius: 24px;
+  }
+  
+  .v-circle { width: 55px; height: 55px; font-size: 1.2rem; }
+  .v-label { font-size: 0.75rem; }
+  .cta-search-btn { height: 60px; font-size: 1rem; margin-bottom: 10px; }
+
+  /* LAYOUT RISULTATI MOBILE */
+  .results-content-card {
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .res-left {
+    flex: none;
+    height: 45%; 
+    width: 100%;
+  }
+
+  .res-header-mini {
+    top: 15px; left: 15px;
+    padding: 8px 15px;
+  }
+  
+  .res-header-mini h3 { font-size: 1rem; }
+  .close-icon { top: 15px; right: 15px; width: 35px; height: 35px; font-size: 1rem; }
+
+  /* COLONNA DESTRA (Dove c'era il problema) */
+  /* ... dentro @media (max-width: 768px) ... */
+
+/* ... dentro @media (max-width: 768px) ... */
+
+  .res-right {
+    flex: 1;
+    
+    /* 1. ALTEZZA RIDOTTA: Dal 45% al 40% (Scende ancora) */
+    height: 40% !important; 
+    
+    min-width: 0 !important;
+    width: 100%;
+    
+    /* 2. CURVA E BORDO: Manteniamo l'effetto "scheda" */
+    border-radius: 35px 35px 0 0 !important; /* Curva leggermente più accentuata */
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-left: none;
+    
+    padding: 25px 20px !important;
+    gap: 15px;
+    
+    /* Ombra profonda verso l'alto */
+    box-shadow: 0 -15px 40px rgba(0,0,0,0.6) !important;
+
+    /* Scroll abilitato e spazio per la dock */
+    overflow-y: auto !important;
+    padding-bottom: 120px !important;
+    
+    z-index: 10;
+    position: relative;
+  }
+
+  /* --- FIX BOX E TESTO TAGLIATO --- */
+  .stat-box {
+    overflow: visible !important;   /* Mostra tutto il testo anche se esce */
+    height: auto !important;        /* Si allunga quanto serve */
+    min-height: min-content !important; 
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-giant {
+    font-size: 1.6rem !important;   /* Font ridotto per frasi lunghe */
+    line-height: 1.3 !important;    /* Più spazio tra le righe */
+    word-wrap: break-word !important;
+    white-space: normal !important; /* Permette l'a capo */
+    margin-bottom: 10px !important;
+  }
+
+  .stat-desc {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}

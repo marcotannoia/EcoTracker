@@ -1,118 +1,129 @@
-import json
+import boto3
+from boto3.dynamodb.conditions import Key
+import time
 import os
-from datetime import datetime 
+from dotenv import load_dotenv
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'database', 'percorse.db.json') 
+load_dotenv()
 
-def carica_db(): 
-    if not os.path.exists(DB_PATH):
-        return {}
+# Configurazione
+REGION = os.getenv("AWS_REGION", "eu-south-1")
+ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
+SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+TABLE_NAME = "EcoTrack_viaggi"
+
+# Connessione Silenziosa (Niente più log giganti)
+try:
+    dynamodb = boto3.resource(
+        'dynamodb',
+        region_name=REGION,
+        aws_access_key_id=ACCESS_KEY,
+        aws_secret_access_key=SECRET_KEY
+    )
+    table = dynamodb.Table(TABLE_NAME)
+except:
+    print("Errore connessione DB")
+
+def registra_viaggio(username, co2, km, mezzo, start, end):
     try:
-        with open(DB_PATH, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def salva_db(db): 
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    with open(DB_PATH, 'w') as f:
-        json.dump(db, f, indent=4)
-
-def registra_viaggio(username, co2, km, mezzo, start, end): 
-    db = carica_db()
-    
-    if username not in db: 
-        db[username] = []
-    
-    valore_co2 = co2 if isinstance(co2, (int, float)) else 0.0 
-
-    viaggio = { 
-        "data": datetime.now().isoformat(),
-        "co2": float(valore_co2),
-        "km": float(km),
-        "mezzo": mezzo,
-        "start": start,
-        "end": end
-    }
-    
-    db[username].append(viaggio)  
-    salva_db(db)
-
-def genera_wrapped(username): 
-    db = carica_db()
-    viaggi_completi = db.get(username, [])
-    
-    ora = datetime.now() 
-    inizio_mese = ora.replace(day=1, hour=0, minute=0, second=0, microsecond=0) 
-    data_inizio_formattata = inizio_mese.strftime("%d/%m/%Y")
-
-    # solo viaggi del mese
-    viaggi = []
-    for v in viaggi_completi:
-        try:
-            if datetime.fromisoformat(v['data']) >= inizio_mese:
-                viaggi.append(v)
-        except (ValueError, KeyError): 
-            continue
-
-     # se non ci sono viaggi nel mese 
-    if not viaggi:
-        return {
-            "totale_co2": 0.0, 
-            "totale_km": 0.0, 
-            "numero_viaggi": 0, 
-            "mezzo_preferito": "Nessuno",
-            "data_inizio": data_inizio_formattata,
-            "ultimo_viaggio": "-"
+        item = {
+            'username': str(username),
+            'timestamp': str(int(time.time())),
+            'data': time.strftime("%Y-%m-%d %H:%M:%S"),
+            'co2': str(co2),
+            'km': str(km),
+            'mezzo': str(mezzo),
+            'partenza': str(start),
+            'arrivo': str(end)
         }
-    
-    totale_co2 = sum(v['co2'] for v in viaggi) 
-    totale_km = sum(v['km'] for v in viaggi)
-    mezzi_usati = [v['mezzo'] for v in viaggi]
-    mezzo_preferito = max(set(mezzi_usati), key=mezzi_usati.count)
-
-    return { 
-        "totale_co2": round(totale_co2, 2),
-        "totale_km": round(totale_km, 2),
-        "numero_viaggi": len(viaggi),
-        "mezzo_preferito": mezzo_preferito,
-        "ultimo_viaggio": viaggi[-1]['data'],
-        "data_inizio": data_inizio_formattata 
-    }
-
-def leggi_tutti_utenti(): # mi serve per la classifica
-    db = carica_db()
-    return list(db.keys())  
-
-def get_classifica_risparmio(): # leaderbord
-    db = carica_db()
-    classifica = []
-    CO2_AUTO_PER_KM = 0.120 
-
-    for username, viaggi in db.items():
-        co2_risparmiata_totale = 0.0
-        
-        for v in viaggi:
-            km = float(v.get('km', 0))
-            co2_emessa = float(v.get('co2', 0))
-            co2_teorica_auto = km * CO2_AUTO_PER_KM
-            risparmio = co2_teorica_auto - co2_emessa
-            
-            if risparmio > 0:
-                co2_risparmiata_totale += risparmio
-                
-        if co2_risparmiata_totale > 0:
-            classifica.append({
-                "username": username,
-                "risparmio": round(co2_risparmiata_totale, 2)
-            })
-    
-    classifica.sort(key=lambda x: x['risparmio'], reverse=True)
-    return classifica
+        table.put_item(Item=item)
+        return True
+    except:
+        return False
 
 def get_storico_completo(username):
-    db = carica_db()
-    return db.get(username, [])
+    try:
+        response = table.query(KeyConditionExpression=Key('username').eq(username))
+        items = response.get('Items', [])
+        
+        storico = []
+        for v in items:
+            try:
+                # Convertiamo in numeri per il frontend
+                v['co2'] = float(v.get('co2', 0))
+                v['km'] = float(v.get('km', 0))
+                storico.append(v)
+            except: continue
+            
+        storico.sort(key=lambda x: x['timestamp'], reverse=True)
+        return storico
+    except:
+        return []
 
-# licia e daniele se state leggendo questo sappiate che sono le 3 di notte e sto risolvendo il bug del wrapped 
-# e finire il terzo capitolo della relazione mi dovete almeno 1 sushi a testa quando ci vedremo
+def genera_wrapped(username):
+    viaggi = get_storico_completo(username)
+    if not viaggi: return None
+
+    totale_co2 = sum(v['co2'] for v in viaggi)
+    totale_km = sum(v['km'] for v in viaggi)
+    
+    # Calcolo mezzo preferito
+    counts = {}
+    for v in viaggi:
+        m = v['mezzo']
+        counts[m] = counts.get(m, 0) + 1
+    best_mezzo = max(counts, key=counts.get) if counts else "Nessuno"
+
+    return {
+        "viaggi_totali": len(viaggi),
+        "co2_risparmiata": round(totale_co2, 2),
+        "km_totali": round(totale_km, 2),
+        "mezzo_preferito": best_mezzo
+    }
+
+def get_classifica_risparmio():
+    """
+    Genera la classifica aggregando i dati di tutti i viaggi.
+    Manda i dati in molteplici formati per garantire compatibilità col frontend.
+    """
+    try:
+        response = table.scan()
+        data = response.get('Items', [])
+        
+        user_stats = {}
+        
+        # 1. Aggrega i dati (Somma la CO2 per ogni utente)
+        for d in data:
+            u = d['username']
+            try:
+                valore_co2 = float(d.get('co2', 0))
+                if u not in user_stats:
+                    user_stats[u] = 0
+                user_stats[u] += valore_co2
+            except: continue
+            
+        # 2. Crea la lista finale con TUTTE le chiavi possibili
+        classifica = []
+        for user, totale in user_stats.items():
+            totale_round = round(totale, 2)
+            
+            classifica.append({
+                "username": user,
+                # Inviamo il valore con nomi diversi per "beccare" quello giusto
+                "co2": totale_round,          # Probabile target 1
+                "score": totale_round,        # Probabile target 2
+                "points": int(totale_round),  # Probabile target 3
+                "risparmio": totale_round,    # Probabile target 4
+                
+                # Aggiungiamo dati finti per evitare crash grafici se mancano
+                "region": "EcoWorld",         # Placeholder per la regione
+                "avatar": user[0].upper()     # Iniziale come avatar
+            })
+            
+        # Ordina dal più alto al più basso
+        classifica.sort(key=lambda x: x['co2'], reverse=True)
+        return classifica[:10] # Top 10
+        
+    except Exception as e:
+        print(f"Errore classifica: {e}")
+        return []

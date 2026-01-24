@@ -7,7 +7,6 @@ import login as auth_service
 import storico
 from alberiCO2 import alberiCO2
 
-
 app = Flask(__name__)
 app.secret_key = "chiave-segreta-super-sicura"
 
@@ -15,17 +14,16 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False 
 app.config['SESSION_COOKIE_HTTPONLY'] = True 
 
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"]) # autorizzo ssto dominio
-
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"]) 
 
 # autenticazione
-@app.route('/api/login', methods=['POST'])  # pagina login
+@app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json() or {}
-    user = auth_service.login_user(data.get('username'), data.get('password')) # richiamo i dati di login
+    user = auth_service.login_user(data.get('username'), data.get('password'))
     
     if user:
-        session.permanent = True # lascio la sessione permanente
+        session.permanent = True
         session['username'] = user['username']
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
@@ -36,20 +34,38 @@ def api_login():
             "regione": session['regione']
         })
     
-    return jsonify({"ok": False, "errore": "Credenziali errate"}), 401 #  eccezione
+    return jsonify({"ok": False, "errore": "Credenziali errate"}), 401
 
-@app.route('/api/registrati', methods=['POST']) # pagina registrazione
+@app.route('/api/registrati', methods=['POST'])
 def api_registrati():
     data = request.get_json() or {}
-    ok, msg = auth_service.register_user(data.get('username'), data.get('password'), data.get('regione'))  # come prima
-    return jsonify({"ok": ok, "messaggio": msg}), 201 if ok else 409 # 201 creato, 409 errore
+    
+    # Recupero i dati, inclusa la nuova Email
+    username = data.get('username')
+    password = data.get('password')
+    regione = data.get('regione')
+    email = data.get('email') # <--- NUOVO
+    
+    # Passo l'email alla funzione di registrazione
+    ok, msg = auth_service.register_user(username, password, regione, email)
+    
+    return jsonify({"ok": ok, "messaggio": msg}), 201 if ok else 409
 
-@app.route('/api/logout', methods=['POST']) # pagina logout
+@app.route('/api/conferma', methods=['POST'])
+def api_conferma():
+    data = request.get_json() or {}
+    username = data.get('username')
+    codice = data.get('codice')
+    
+    ok, msg = auth_service.verify_user(username, codice)
+    return jsonify({"ok": ok, "messaggio": msg}), 200 if ok else 400
+
+@app.route('/api/logout', methods=['POST'])
 def api_logout():
     session.clear()
     return jsonify({"ok": True})
 
-@app.route('/api/me', methods=['GET']) # pagina profilo
+@app.route('/api/me', methods=['GET'])
 def api_me():
     user = session.get('username')
     if user:
@@ -61,32 +77,31 @@ def api_me():
         })
     return jsonify({"ok": False}), 401
 
-@app.route('/api/utenti', methods=['GET']) # pagina utenti 
+@app.route('/api/utenti', methods=['GET'])
 def get_utenti():
     try:
-        lista = auth_service.get_users_list()  # tutti
+        lista = auth_service.get_users_list()
         return jsonify({"ok": True, "utenti": lista})
     except Exception as e:
         print(e)
-        return jsonify({"ok": False, "utenti": []}) # errore generico
+        return jsonify({"ok": False, "utenti": []})
 
 # veicoli 
-
-@app.route('/api/veicoli', methods=['GET']) # pagina veicoli
+@app.route('/api/veicoli', methods=['GET'])
 def vehicles():
     return jsonify(opzione_trasporto()) 
 
-@app.route('/api/navigazione', methods=['POST']) # pagina navigazione
+@app.route('/api/navigazione', methods=['POST'])
 def navigazione():
     data = request.get_json() or {} 
     start, end = data.get('start'), data.get('end')
     mezzo = data.get('mezzo', 'car')
 
-    if not start or not end: # errore indirizzi
+    if not start or not end:
         return jsonify({"ok": False, "errore": "Indirizzi mancanti"}), 400
     route = maps.get_google_distance(start, end)  
     
-    if not route: # indirizzi sbagliati
+    if not route:
         return jsonify({"ok": False, "errore": "Percorso non trovato"}), 400
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
@@ -94,12 +109,12 @@ def navigazione():
     if mezzo in ['bike', 'piedi', 'veicolo_elettrico']:
         emissioni = 0
     else:
-        emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo)  # mi sereve per ccalclare la CO2
+        emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo)
 
     current_username = session.get('username') 
     
     if current_username: 
-        storico.registra_viaggio( # registro il viaggio
+        storico.registra_viaggio(
             username=current_username,
             co2=emissioni,
             km=distanza_km,
@@ -108,7 +123,7 @@ def navigazione():
             end=route.get('end_address')      
         )
     
-    map_url = maps.get_embed_map_url(route.get('start_address'), route.get('end_address')) # mappa interattiva
+    map_url = maps.get_embed_map_url(route.get('start_address'), route.get('end_address'))
 
     return jsonify({
         "ok": True,
@@ -122,44 +137,42 @@ def navigazione():
     })
 
 # wrap
-
 @app.route('/api/storico', methods=['GET'])
 def api_storico_completo():
     current_username = session.get('username')
     if not current_username:
-        return jsonify({"ok": False, "errore": "Non loggato"}), 401 # metto sempre che deve essere loggato
+        return jsonify({"ok": False, "errore": "Non loggato"}), 401
     dati = storico.get_storico_completo(current_username)
     return jsonify(dati) 
 
-@app.route('/api/wrapped', defaults={'username': None}, methods=['GET']) # pagina wrapped
-@app.route('/api/wrapped/<username>', methods=['GET']) # pagina wrapped utente specifico
+@app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
+@app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
     current_username = session.get('username')
-
-    target_user = username if username else current_username # cioe o io o un utente cercato
+    target_user = username if username else current_username
     
     if not target_user:
         return jsonify({"ok": False, "errore": "Accesso negato o utente non specificato."}), 401 
     
-    stats = storico.genera_wrapped(target_user) # genero le statistiche
+    stats = storico.genera_wrapped(target_user)
 
-    if stats is None: # se non sta niente
+    if stats is None:
         return jsonify({"ok": False, "messaggio": f"Nessun dato trovato per {target_user}"}), 404 
 
     return jsonify({"ok": True, "dati": stats, "target": target_user})
 
-@app.route('/api/calcolo-alberi', methods=['POST']) # pagina calcolo alberi
+@app.route('/api/calcolo-alberi', methods=['POST'])
 def api_calcolo_alberi():
     data = request.get_json() or {}
     co2_input = data.get('co2')
     
-    if co2_input is None: # ese non sta niente
+    if co2_input is None:
         return jsonify({"ok": False, "errore": "Valore CO2 mancante"}), 400
     
     try:
         co2_valore = float(co2_input)
     except ValueError:
-        return jsonify({"ok": False, "errore": "Il valore CO2 deve essere un numero"}), 400 # se metto altrp
+        return jsonify({"ok": False, "errore": "Il valore CO2 deve essere un numero"}), 400
 
     giorni_necessari = alberiCO2(co2_valore)
 
@@ -170,7 +183,7 @@ def api_calcolo_alberi():
         "messaggio": f"Un albero impiegherebbe circa {giorni_necessari} giorni per assorbire questa CO₂."
     })
 
-@app.route('/api/classifica', methods=['GET']) # pagina classifica
+@app.route('/api/classifica', methods=['GET'])
 def api_classifica():
     try:
         data = storico.get_classifica_risparmio()

@@ -1,64 +1,97 @@
-import json
+import boto3
 import os
-from werkzeug.security import generate_password_hash, check_password_hash
+import hmac
+import hashlib
+import base64
+from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "users.json")
+load_dotenv()
 
-def caricaDB():
-    if not os.path.exists(DB_FILE): # se non sta il db
-        print(f"ATTENZIONE: File DB non trovato in {DB_FILE}. Crearne uno nuovo.")
-        return {} 
-    
+REGION_NAME = os.getenv("AWS_REGION")
+USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
+CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
+CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
+
+client = boto3.client('cognito-idp', region_name=REGION_NAME)
+
+def get_secret_hash(username):
+    msg = username + CLIENT_ID
+    dig = hmac.new(
+        str(CLIENT_SECRET).encode('utf-8'), 
+        msg=str(msg).encode('utf-8'), 
+        digestmod=hashlib.sha256
+    ).digest()
+    return base64.b64encode(dig).decode()
+
+def register_user(username, password, regione, email):
     try:
-        with open(DB_FILE, 'r') as f: 
-            return json.load(f)
-    except Exception as e: # errore generico
-        print(f"Errore lettura DB: {e}")
-        return {}
+        secret_hash = get_secret_hash(username)
+        client.sign_up(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username,
+            Password=password,
+            UserAttributes=[
+                {'Name': 'custom:regione', 'Value': regione},
+                {'Name': 'email', 'Value': email}
+            ]
+        )
+        return True, "Codice inviato alla mail"
+    except ClientError as e:
+        return False, e.response['Error']['Message']
 
-def salvaDB(db):
+def verify_user(username, code):
+    """
+    Verifica il codice ricevuto via email
+    """
     try:
-        with open(DB_FILE, 'w') as f:
-            json.dump(db, f, indent=4) # dammelo ordinato e scrivici
-    except Exception as e:
-        print(f"Errore salvataggio DB: {e}")
+        secret_hash = get_secret_hash(username)
+        client.confirm_sign_up(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username,
+            ConfirmationCode=code
+        )
+        return True, "Account verificato con successo!"
+    except ClientError as e:
+        return False, e.response['Error']['Message']
 
-def register_user(username, password, regione):
-    db = caricaDB()
-    if username in db:
-        return False, "Username già in uso"
-    
-    password_hashata = generate_password_hash(password) # passowrd hashata
-    
-    db[username] = {
-        "username": username,
-        "password": password_hashata,
-        "regione": regione,
-        "role": "utente"
-    }
-    salvaDB(db) 
-    return True, "Registrato con successo"
+def login_user(username, password):
+    try:
+        secret_hash = get_secret_hash(username)
+        resp = client.initiate_auth(
+            ClientId=CLIENT_ID,
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password,
+                'SECRET_HASH': secret_hash
+            }
+        )
+        access_token = resp['AuthenticationResult']['AccessToken']
+        user_info = client.get_user(AccessToken=access_token)
+        
+        regione = ""
+        for attr in user_info['UserAttributes']:
+            if attr['Name'] == 'custom:regione':
+                regione = attr['Value']
 
-def login_user(username, password): # funzione di login
-    db = caricaDB()
-    user = db.get(username)
-    
-    if not user:
-        print(f"Login fallito: Utente '{username}' non trovato nel DB.")
+        return {"username": username, "regione": regione, "role": "utente"}
+    except ClientError as e:
+        print(f"Login error: {e}")
         return None
-    if check_password_hash(user['password'], password):
-        return user
-    else:
-        print(f"Login fallito: Password errata per '{username}'.")
-        return None
 
-def get_users_list(): #mi serve per la classifica
-    db = caricaDB()
-    lista = []
-    for user_key, user_data in db.items():
-        lista.append({
-            "username": user_data.get("username"),
-            "regione": user_data.get("regione", "").lower()
-        })
-    return lista
+def get_users_list():
+    try:
+        response = client.list_users(
+            UserPoolId=USER_POOL_ID,
+            AttributesToGet=['custom:regione']
+        )
+        lista = []
+        for u in response['Users']:
+            reg = next((a['Value'] for a in u['Attributes'] if a['Name'] == 'custom:regione'), "")
+            lista.append({"username": u['Username'], "regione": reg.lower()})
+        return lista
+    except Exception:
+        return []

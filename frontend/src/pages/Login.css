@@ -219,3 +219,66 @@
 @keyframes fadeIn {
   from { opacity: 0; } to { opacity: 1; }
 } 
+
+/* --- Ottimizzazione Mobile (Login/Registrazione) --- */
+@media (max-width: 768px) {
+  
+  /* 1. Dai respiro alla pagina intera */
+  .login-page {
+    padding: 20px 15px; /* Spazio dai bordi dello schermo */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centra verticalmente */
+    min-height: 100vh; /* Occupa tutto lo schermo */
+  }
+
+  /* 2. Riduci l'intestazione gigante */
+  .hero-header {
+    margin-bottom: 30px; /* Stacca l'intestazione dal form */
+    text-align: center;
+  }
+
+  .brand-title {
+    font-size: 2.5rem; /* Titolo più piccolo (era probabilmente enorme) */
+    margin-bottom: 10px;
+  }
+
+  .brand-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+  }
+
+  /* 3. La Scheda Bianca/Scura centrale */
+  .main-search-card {
+    padding: 25px 20px !important; /* Meno spazio interno */
+    width: 100%;
+    max-width: 100%; /* Evita che esca dallo schermo */
+    box-sizing: border-box; /* Calcola bene i bordi */
+    backdrop-filter: blur(10px); /* Migliora la leggibilità su sfondi colorati */
+  }
+
+  /* 4. I Campi di Input (Evita che si tocchino) */
+  .login-form-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 15px !important; /* FORZA lo spazio tra gli input */
+  }
+
+  .card-input {
+    font-size: 16px; /* Importante: evita lo zoom automatico su iPhone */
+    padding: 14px;   /* Più facile da cliccare col dito */
+    margin-bottom: 0 !important; /* Gestiamo lo spazio col gap sopra */
+  }
+
+  /* 5. Pulsanti e Link */
+  .cta-search-btn {
+    margin-top: 10px;
+    padding: 15px;
+    font-size: 1.1rem;
+  }
+
+  .login-toggle-area {
+    margin-top: 25px; /* Stacca la scritta "Non hai un account?" */
+    padding-bottom: 80px; /* SPAZIO EXTRA PER NON FINIRE SOTTO LA DOCK */
+  }
+}
