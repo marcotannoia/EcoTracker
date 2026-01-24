@@ -24,22 +24,27 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 
 # --- 2. CORS (PERMETTE A CLOUDFRONT DI ACCEDERE) ---
-# Sostituisci l'URL se cambia, ma questo è quello del tuo screenshot
+# Questo abilita le richieste dal tuo Frontend su CloudFront
 CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials=True)
 
-# --- ROTTE ---
+# --- ROTTE AUTENTICAZIONE ---
 
-# Autenticazione
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json() or {}
-    user = auth_service.login_user(data.get('username'), data.get('password'))
+    # Convertiamo username in minuscolo per evitare duplicati "Marco"/"marco"
+    username_input = data.get('username', '').lower().strip()
+    password_input = data.get('password')
+    
+    user = auth_service.login_user(username_input, password_input)
     
     if user:
         session.permanent = True
-        session['username'] = user['username']
+        session['username'] = user['username'] # Salviamo nel cookie
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
+        
+        print(f"🔑 Login effettuato: {user['username']}")
         return jsonify({
             "ok": True, 
             "username": user['username'], 
@@ -52,7 +57,8 @@ def api_login():
 @app.route('/api/registrati', methods=['POST'])
 def api_registrati():
     data = request.get_json() or {}
-    username = data.get('username')
+    # Username sempre minuscolo
+    username = data.get('username', '').lower().strip()
     password = data.get('password')
     regione = data.get('regione')
     email = data.get('email')
@@ -63,7 +69,7 @@ def api_registrati():
 @app.route('/api/conferma', methods=['POST'])
 def api_conferma():
     data = request.get_json() or {}
-    username = data.get('username')
+    username = data.get('username', '').lower().strip()
     codice = data.get('codice')
     
     ok, msg = auth_service.verify_user(username, codice)
@@ -82,9 +88,10 @@ def api_me():
             "ok": True, 
             "username": user, 
             "ruolo": session.get('ruolo'), 
-            "regione": session.get('regione', '')
+            "regione": session.get('regione', ''),
+            "is_logged": True
         })
-    return jsonify({"ok": False}), 401
+    return jsonify({"ok": False, "is_logged": False}), 401
 
 @app.route('/api/utenti', methods=['GET'])
 def get_utenti():
@@ -95,12 +102,12 @@ def get_utenti():
         print(f"Errore utenti: {e}")
         return jsonify({"ok": False, "utenti": []})
 
-# Veicoli 
+# --- VEICOLI ---
 @app.route('/api/veicoli', methods=['GET'])
 def vehicles():
     return jsonify(opzione_trasporto()) 
 
-# --- ROTTA CRITICA: NAVIGAZIONE E SALVATAGGIO ---
+# --- NAVIGAZIONE E SALVATAGGIO ---
 @app.route('/api/navigazione', methods=['POST'])
 def navigazione():
     data = request.get_json() or {} 
@@ -110,25 +117,27 @@ def navigazione():
     if not start or not end:
         return jsonify({"ok": False, "errore": "Indirizzi mancanti"}), 400
     
-    # Calcolo percorso
+    # 1. Calcolo percorso con Google Maps
     route = maps.get_google_distance(start, end)  
     
     if not route:
-        return jsonify({"ok": False, "errore": "Percorso non trovato (Verifica API Key Google)"}), 400
+        return jsonify({"ok": False, "errore": "Percorso non trovato (Verifica indirizzi o API Key)"}), 400
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
 
+    # 2. Calcolo Emissioni
     if mezzo in ['bike', 'piedi', 'veicolo_elettrico']:
         emissioni = 0
     else:
         emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo)
 
-    # --- BLOCCO SALVATAGGIO CON DEBUG ---
+    # 3. Salvataggio nel DB (Se loggato)
     current_username = session.get('username') 
     
     if current_username:
         print(f"🔄 Tentativo salvataggio viaggio per: {current_username}...")
         try:
+            # storico.registra_viaggio ora gestisce la conversione Decimal/String internamente
             esito = storico.registra_viaggio(
                 username=current_username,
                 co2=emissioni,
@@ -143,9 +152,6 @@ def navigazione():
                 print("❌ ERRORE DB: storico.registra_viaggio ha restituito False.")
         except Exception as e:
              print(f"❌ ERRORE GRAVE DURANTE IL SALVATAGGIO: {e}")
-    else:
-        print("⚠️ Utente non loggato, viaggio non salvato.")
-    # ------------------------------------
     
     map_url = maps.get_embed_map_url(route.get('start_address'), route.get('end_address'))
 
@@ -154,39 +160,41 @@ def navigazione():
         "start_address": route.get('start_address'),
         "end_address": route.get('end_address'),
         "distanza_testo": route.get('distanza_testo'),
-        "emissioni_co2": f"{emissioni:.2f} kg di CO₂" if isinstance(emissioni, (int, float)) else str(emissioni),
+        "emissioni_co2": f"{emissioni:.2f} kg di CO₂", # Stringa formattata per il frontend
         "mezzo_scelto": mezzo,
         "is_logged": bool(current_username),
         "map_url": map_url
     })
 
-# Storico e Statistiche
+# --- STORICO E STATISTICHE ---
+
 @app.route('/api/storico', methods=['GET'])
 def api_storico():
     user = session.get('username')
     if not user: return jsonify({"ok": False, "errore": "Login richiesto"}), 401
     
     dati = storico.get_storico_completo(user)
-    return jsonify(dati) # Restituisce {"ok": True, "viaggi": [...]}
+    return jsonify(dati)
 
 
+# --- ROTTA FONDAMENTALE PER IL PROFILO (WRAPPED) ---
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
 @app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
-    # 1. Chi è l'utente da analizzare?
+    # 1. Chi è l'utente target?
     current_username = session.get('username')
     target_user = username if username else current_username
     
     if not target_user:
         return jsonify({"ok": False, "errore": "Utente non specificato"}), 401 
 
-    print(f"Richiesta Wrapped per: {target_user}") # Log per debug
+    print(f"📊 Generazione statistiche (Wrapped) per: {target_user}")
 
     try:
-        # 2. Chiediamo i dati a storico.py
+        # 2. Otteniamo i dati da storico.py
         stats = storico.genera_wrapped(target_user)
 
-        # 3. Preparazione dati vuoti se non c'è storico
+        # 3. Oggetto vuoto di fallback (tutto a zero)
         stats_vuote = {
             "viaggi_totali": 0, "co2_risparmiata": 0,
             "km_totali": 0, "mezzo_preferito": "Nessuno"
@@ -194,32 +202,37 @@ def api_wrapped(username):
 
         dati_finali = stats if stats else stats_vuote
 
-        # 4. RISPOSTA "DOPPIA" (Per compatibilità Frontend)
-        # Mettiamo i dati sia nella radice che sotto "dati"
+        # 4. TRUCCO "DOPPIA RISPOSTA" (FIX PER IL FRONTEND)
+        # Inviamo i dati sia dentro "dati" (per il profilo)
+        # sia "spalmati" nella radice del JSON (per ricerca utenti/altro)
         risposta = {
             "ok": True,
             "target": target_user,
-            "dati": dati_finali, # Per chi cerca response.dati
-            **dati_finali        # Per chi cerca response.viaggi_totali
+            "dati": dati_finali,  # <--- React spesso cerca qui (res.dati.viaggi_totali)
+            **dati_finali         # <--- React a volte cerca qui (res.viaggi_totali)
         }
+        
         return jsonify(risposta)
 
     except Exception as e:
-        print(f"CRASH TOTALE IN APP.PY: {e}")
-        return jsonify({"ok": False, "errore": str(e)}), 500
+        print(f"❌ CRASH WRAPPED APP.PY: {e}")
+        # In caso di errore grave, restituisci comunque zeri per non rompere la pagina
+        return jsonify({"ok": True, "dati": stats_vuote, **stats_vuote})
+
 
 @app.route('/api/calcolo-alberi', methods=['POST'])
 def api_calcolo_alberi():
     data = request.get_json() or {}
     co2_input = data.get('co2')
     
-    if co2_input is None:
-        return jsonify({"ok": False, "errore": "Valore CO2 mancante"}), 400
-    
+    # Se arriva come stringa "10.5 kg...", proviamo a pulirla
+    if isinstance(co2_input, str):
+        co2_input = co2_input.split(' ')[0] # Prende solo il numero prima di "kg"
+
     try:
         co2_valore = float(co2_input)
-    except ValueError:
-        return jsonify({"ok": False, "errore": "Il valore deve essere numerico"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"ok": False, "errore": "Valore CO2 non valido"}), 400
 
     giorni_necessari = alberiCO2(co2_valore)
 
@@ -240,5 +253,5 @@ def api_classifica():
         return jsonify({"ok": False, "classifica": []})
     
 if __name__ == '__main__':
-    print("Server EcoRoute in esecuzione...")
+    print("🚀 Server EcoRoute avviato...")
     app.run(host='0.0.0.0', port=5000, debug=True)
