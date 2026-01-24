@@ -1,19 +1,21 @@
 import boto3
 from boto3.dynamodb.conditions import Key
 import time
+from datetime import datetime
+from decimal import Decimal
 import os
-from decimal import Decimal # Fondamentale per DynamoDB
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configurazione
+# --- CONFIGURAZIONE ---
+# Usa le variabili d'ambiente per sicurezza
 REGION = os.getenv("AWS_REGION", "eu-south-1")
 ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 TABLE_NAME = "EcoTrack_viaggi"
 
-# Connessione DB (Con stampa errore se fallisce)
+# --- CONNESSIONE AL DATABASE ---
 try:
     dynamodb = boto3.resource(
         'dynamodb',
@@ -24,73 +26,96 @@ try:
     table = dynamodb.Table(TABLE_NAME)
     print(f"✅ Connesso a DynamoDB: {TABLE_NAME} in {REGION}")
 except Exception as e:
-    print(f"❌ ERRORE CRITICO DB: {str(e)}")
+    print(f"❌ ERRORE CRITICO CONNESSIONE DB: {str(e)}")
 
-# Funzione di aiuto per convertire Decimali in float/int (Salva Flask dai crash)
-def decimal_default(obj):
-    if isinstance(obj, Decimal):
-        return float(obj)
-    return obj
+
+# --- FUNZIONI ---
 
 def registra_viaggio(username, co2, km, mezzo, start, end):
+    """
+    Salva un viaggio nel database.
+    FIX: Converte i numeri in Decimal e il timestamp in Stringa per compatibilità DynamoDB.
+    """
+    print(f"🔄 Inizio salvataggio per {username}...")
     try:
-        # Forziamo username minuscolo per coerenza
         user_clean = str(username).lower().strip()
         
+        # TIMESTAMP: Deve essere stringa perché nel tuo DB la chiave è Stringa
+        timestamp_now = str(int(time.time())) 
+        
+        # NUMERI: DynamoDB vuole Decimal, non float
+        co2_decimal = Decimal(str(co2))
+        km_decimal = Decimal(str(km))
+
         item = {
-            'username': user_clean,
-            'timestamp': int(time.time()), # Numero, non stringa
-            'data': time.strftime("%Y-%m-%d %H:%M:%S"),
-            'co2': str(co2), # Salviamo come stringa per sicurezza
-            'km': str(km),
+            'username': user_clean,           # Partition Key
+            'timestamp': timestamp_now,       # Sort Key (Stringa!)
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'co2': co2_decimal,
+            'km': km_decimal,
             'mezzo': str(mezzo),
             'partenza': str(start),
             'arrivo': str(end)
         }
+
         table.put_item(Item=item)
-        print(f"Viaggio salvato per {user_clean}")
+        print(f"✅ VIAGGIO SALVATO SU DYNAMODB: {item}")
         return True
+
     except Exception as e:
-        print(f"Errore salvataggio viaggio: {e}")
+        print(f"❌ ERRORE GRAVE DURANTE IL SALVATAGGIO: {e}")
         return False
 
+
 def get_storico_completo(username):
+    """
+    Recupera tutti i viaggi di un utente.
+    Converte i Decimal di DynamoDB in float per evitare errori JSON nel frontend.
+    """
     try:
-        # Cerca sempre in minuscolo
         user_clean = str(username).lower().strip()
         
-        response = table.query(KeyConditionExpression=Key('username').eq(user_clean))
+        response = table.query(
+            KeyConditionExpression=Key('username').eq(user_clean)
+        )
         items = response.get('Items', [])
         
-        storico = []
+        # Pulizia dati: Convertiamo Decimal -> float/int per il Frontend
+        storico_pulito = []
         for v in items:
-            try:
-                # Conversione sicura dei dati
-                v['co2'] = float(v.get('co2', 0))
-                v['km'] = float(v.get('km', 0))
-                # Gestione Decimali per il timestamp
-                if isinstance(v.get('timestamp'), Decimal):
-                    v['timestamp'] = int(v['timestamp'])
-                storico.append(v)
-            except Exception as e:
-                print(f"Errore lettura riga storico: {e}")
-                continue
+            viaggio_temp = v.copy()
+            # Conversione CO2
+            if isinstance(viaggio_temp.get('co2'), Decimal):
+                viaggio_temp['co2'] = float(viaggio_temp['co2'])
+            # Conversione KM
+            if isinstance(viaggio_temp.get('km'), Decimal):
+                viaggio_temp['km'] = float(viaggio_temp['km'])
             
-        storico.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-        return storico
+            storico_pulito.append(viaggio_temp)
+
+        # Ordina dal più recente (basandosi sul timestamp stringa)
+        storico_pulito.sort(key=lambda x: x.get('timestamp', '0'), reverse=True)
+        
+        return {"ok": True, "viaggi": storico_pulito}
+
     except Exception as e:
-        print(f"Errore get_storico_completo: {e}")
-        return []
+        print(f"Errore lettura storico: {e}")
+        return {"ok": False, "viaggi": []}
+
 
 def genera_wrapped(username):
-    # Questa funzione ora usa la versione robusta di get_storico
-    viaggi = get_storico_completo(username)
+    """
+    Calcola le statistiche totali (Wrapped) dell'utente.
+    """
+    # Usiamo la funzione interna per prendere i dati
+    dati = get_storico_completo(username)
+    viaggi = dati.get('viaggi', [])
     
-    # Se non ci sono viaggi, restituiamo None
     if not viaggi: 
-        print(f"Nessun viaggio trovato per {username}")
+        print(f"Nessun viaggio trovato per {username} per il Wrapped.")
         return None
 
+    # Calcoli statistici
     totale_co2 = sum(v['co2'] for v in viaggi)
     totale_km = sum(v['km'] for v in viaggi)
     
@@ -99,6 +124,7 @@ def genera_wrapped(username):
     for v in viaggi:
         m = v.get('mezzo', 'sconosciuto')
         counts[m] = counts.get(m, 0) + 1
+    
     best_mezzo = max(counts, key=counts.get) if counts else "Nessuno"
 
     return {
@@ -108,55 +134,50 @@ def genera_wrapped(username):
         "mezzo_preferito": best_mezzo
     }
 
+
 def get_classifica_risparmio():
     """
-    Genera la classifica aggregando i dati.
+    Genera la classifica globale aggregando i dati di tutti gli utenti.
     """
     try:
-        # Scan completo (Attenzione: su DB enormi è lento, per ora va bene)
+        # Scansione completa della tabella
         response = table.scan()
         data = response.get('Items', [])
-        print(f"Scansione Classifica: trovati {len(data)} viaggi totali nel DB")
         
         user_stats = {}
         
-        # 1. Aggrega i dati
+        # 1. Aggrega i dati per utente
         for d in data:
-            u = d.get('username', 'sconosciuto')
+            u = d.get('username', 'anonimo')
             try:
-                # Convertiamo qualunque cosa sia 'co2' in float
+                # Gestione robusta: converte in float sia che sia Decimal o altro
                 raw_co2 = d.get('co2', 0)
-                valore_co2 = float(raw_co2)
+                val_co2 = float(raw_co2)
                 
                 if u not in user_stats:
                     user_stats[u] = 0.0
-                user_stats[u] += valore_co2
+                user_stats[u] += val_co2
             except Exception as e: 
-                # Se un dato è corrotto, lo saltiamo ma lo logghiamo
-                # print(f"Dato corrotto per {u}: {e}")
-                continue
+                continue # Salta dati corrotti
             
-        # 2. Crea la lista finale
+        # 2. Crea la lista finale ordinata
         classifica = []
         for user, totale in user_stats.items():
             totale_round = round(totale, 2)
             
-            # Creiamo un oggetto utente per la classifica
             classifica.append({
                 "username": user,
                 "co2": totale_round,          
                 "risparmio": totale_round,    
                 "score": int(totale_round),
-                # Mettiamo un placeholder, dato che la tabella viaggi non ha la regione
-                "regione": "Global",         
+                "regione": "Global", # Placeholder
                 "avatar": user[0].upper() if user else "?"
             })
             
-        # Ordina
+        # Ordina decrescente in base alla CO2
         classifica.sort(key=lambda x: x['co2'], reverse=True)
         
-        print(f"Classifica generata: {len(classifica)} utenti")
-        return classifica[:10] # Top 10
+        return classifica[:10] # Ritorna la Top 10
         
     except Exception as e:
         print(f"❌ Errore GRAVE classifica: {str(e)}")
