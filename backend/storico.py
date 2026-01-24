@@ -6,14 +6,12 @@ from decimal import Decimal
 import os
 
 # --- CONFIGURAZIONE ---
-# Su Render le variabili d'ambiente sono già caricate dal sistema.
-# Non serve load_dotenv.
 REGION = os.environ.get("AWS_REGION", "eu-south-1")
 ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID")
 SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 TABLE_NAME = "EcoTrack_viaggi"
 
-# --- CONNESSIONE AL DATABASE ---
+# --- CONNESSIONE ---
 try:
     dynamodb = boto3.resource(
         'dynamodb',
@@ -22,26 +20,27 @@ try:
         aws_secret_access_key=SECRET_KEY
     )
     table = dynamodb.Table(TABLE_NAME)
-    print(f"✅ Connesso a DynamoDB: {TABLE_NAME} in {REGION}")
+    print(f"✅ Connesso a DynamoDB: {TABLE_NAME}")
 except Exception as e:
-    print(f"❌ ERRORE CRITICO CONNESSIONE DB: {str(e)}")
+    print(f"❌ ERRORE CRITICO DB: {str(e)}")
 
+# --- FUNZIONE DI PULIZIA DATI ---
+def safe_float(valore):
+    """Converte qualsiasi cosa (Decimal, stringa, int) in float in modo sicuro."""
+    try:
+        if valore is None: return 0.0
+        return float(valore)
+    except Exception:
+        return 0.0
 
-# --- FUNZIONI ---
+# --- FUNZIONI CORE ---
 
 def registra_viaggio(username, co2, km, mezzo, start, end):
-    """
-    Salva un viaggio nel database.
-    FIX: Converte i numeri in Decimal e il timestamp in Stringa per compatibilità DynamoDB.
-    """
-    print(f"🔄 Inizio salvataggio per {username}...")
     try:
         user_clean = str(username).lower().strip()
-        
-        # TIMESTAMP: Stringa (perché nel DB la chiave è Stringa)
         timestamp_now = str(int(time.time())) 
         
-        # NUMERI: DynamoDB vuole Decimal
+        # Salviamo come Decimal per correttezza su DynamoDB
         co2_decimal = Decimal(str(co2))
         km_decimal = Decimal(str(km))
 
@@ -57,57 +56,43 @@ def registra_viaggio(username, co2, km, mezzo, start, end):
         }
 
         table.put_item(Item=item)
-        print(f"✅ VIAGGIO SALVATO SU DYNAMODB: {item}")
+        print(f"✅ SALVATO: {item}")
         return True
-
     except Exception as e:
-        print(f"❌ ERRORE GRAVE DURANTE IL SALVATAGGIO: {e}")
+        print(f"❌ ERRORE SALVATAGGIO: {e}")
         return False
 
-
 def get_storico_completo(username):
-    """
-    Recupera tutti i viaggi di un utente.
-    Converte i Decimal di DynamoDB in float per evitare errori JSON nel frontend.
-    """
     try:
         user_clean = str(username).lower().strip()
-        
-        response = table.query(
-            KeyConditionExpression=Key('username').eq(user_clean)
-        )
+        response = table.query(KeyConditionExpression=Key('username').eq(user_clean))
         items = response.get('Items', [])
         
-        # Pulizia dati: Convertiamo Decimal -> float/int per il Frontend
+        # PULIZIA DATI FONDAMENTALE
         storico_pulito = []
         for v in items:
-            viaggio_temp = v.copy()
-            # Conversione CO2
-            if isinstance(viaggio_temp.get('co2'), Decimal):
-                viaggio_temp['co2'] = float(viaggio_temp['co2'])
-            # Conversione KM
-            if isinstance(viaggio_temp.get('km'), Decimal):
-                viaggio_temp['km'] = float(viaggio_temp['km'])
-            
-            storico_pulito.append(viaggio_temp)
+            viaggio = v.copy()
+            # Forziamo la conversione in float di TUTTO per evitare crash
+            viaggio['co2'] = safe_float(viaggio.get('co2'))
+            viaggio['km'] = safe_float(viaggio.get('km'))
+            storico_pulito.append(viaggio)
 
-        # Ordina dal più recente
         storico_pulito.sort(key=lambda x: x.get('timestamp', '0'), reverse=True)
-        
         return {"ok": True, "viaggi": storico_pulito}
 
     except Exception as e:
-        print(f"Errore lettura storico: {e}")
+        print(f"Errore storico: {e}")
         return {"ok": False, "viaggi": []}
 
-
 def genera_wrapped(username):
+    # Usa get_storico_completo che ora restituisce numeri puliti (float)
     dati = get_storico_completo(username)
     viaggi = dati.get('viaggi', [])
     
     if not viaggi: 
         return None
 
+    # Ora la somma è sicura perché sono tutti float!
     totale_co2 = sum(v['co2'] for v in viaggi)
     totale_km = sum(v['km'] for v in viaggi)
     
@@ -125,24 +110,19 @@ def genera_wrapped(username):
         "mezzo_preferito": best_mezzo
     }
 
-
 def get_classifica_risparmio():
     try:
         response = table.scan()
         data = response.get('Items', [])
-        
         user_stats = {}
+        
         for d in data:
             u = d.get('username', 'anonimo')
-            try:
-                raw_co2 = d.get('co2', 0)
-                val_co2 = float(raw_co2)
-                
-                if u not in user_stats:
-                    user_stats[u] = 0.0
-                user_stats[u] += val_co2
-            except Exception: 
-                continue
+            val_co2 = safe_float(d.get('co2')) # Usa la conversione sicura
+            
+            if u not in user_stats:
+                user_stats[u] = 0.0
+            user_stats[u] += val_co2
             
         classifica = []
         for user, totale in user_stats.items():
@@ -160,5 +140,5 @@ def get_classifica_risparmio():
         return classifica[:10]
         
     except Exception as e:
-        print(f"❌ Errore GRAVE classifica: {str(e)}")
+        print(f"❌ Errore classifica: {str(e)}")
         return []
