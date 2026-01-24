@@ -162,47 +162,51 @@ def navigazione():
 
 # Storico e Statistiche
 @app.route('/api/storico', methods=['GET'])
-def api_storico_completo():
-    current_username = session.get('username')
-    if not current_username:
-        return jsonify({"ok": False, "errore": "Non loggato"}), 401
-    dati = storico.get_storico_completo(current_username)
-    return jsonify(dati) 
+def api_storico():
+    user = session.get('username')
+    if not user: return jsonify({"ok": False, "errore": "Login richiesto"}), 401
+    
+    dati = storico.get_storico_completo(user)
+    return jsonify(dati) # Restituisce {"ok": True, "viaggi": [...]}
+
 
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
 @app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
-    # 1. Identifica l'utente (quello loggato o quello cercato)
+    # 1. Chi è l'utente da analizzare?
     current_username = session.get('username')
     target_user = username if username else current_username
     
     if not target_user:
-        return jsonify({"ok": False, "errore": "Utente non loggato"}), 401 
+        return jsonify({"ok": False, "errore": "Utente non specificato"}), 401 
 
-    print(f"🔄 Generando Wrapped per: {target_user}")
-    
-    # 2. Prendi le statistiche dal file storico.py
-    stats = storico.genera_wrapped(target_user)
+    print(f"Richiesta Wrapped per: {target_user}") # Log per debug
 
-    # 3. Se l'utente non ha ancora viaggi (stats è None)
-    if stats is None:
+    try:
+        # 2. Chiediamo i dati a storico.py
+        stats = storico.genera_wrapped(target_user)
+
+        # 3. Preparazione dati vuoti se non c'è storico
         stats_vuote = {
-            "viaggi_totali": 0,
-            "co2_risparmiata": 0,
-            "km_totali": 0,
-            "mezzo_preferito": "Nessuno"
+            "viaggi_totali": 0, "co2_risparmiata": 0,
+            "km_totali": 0, "mezzo_preferito": "Nessuno"
         }
-        return jsonify({"ok": True, "dati": stats_vuote, **stats_vuote})
 
-    # 4. RISPOSTA UNIVERSALE (Invio doppio per sicurezza)
-    risposta = {
-        "ok": True,
-        "target": target_user,
-        "dati": stats  # Alcuni tuoi componenti cercano qui
-    }
-    risposta.update(stats) # Altri componenti cercano qui (viaggi_totali, ecc.)
+        dati_finali = stats if stats else stats_vuote
 
-    return jsonify(risposta)
+        # 4. RISPOSTA "DOPPIA" (Per compatibilità Frontend)
+        # Mettiamo i dati sia nella radice che sotto "dati"
+        risposta = {
+            "ok": True,
+            "target": target_user,
+            "dati": dati_finali, # Per chi cerca response.dati
+            **dati_finali        # Per chi cerca response.viaggi_totali
+        }
+        return jsonify(risposta)
+
+    except Exception as e:
+        print(f"CRASH TOTALE IN APP.PY: {e}")
+        return jsonify({"ok": False, "errore": str(e)}), 500
 
 @app.route('/api/calcolo-alberi', methods=['POST'])
 def api_calcolo_alberi():
