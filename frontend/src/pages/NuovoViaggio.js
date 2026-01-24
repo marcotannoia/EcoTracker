@@ -3,7 +3,7 @@ import './NuovoViaggio.css';
 
 const INDIRIZZO_SERVER = 'https://ecotrack-86lj.onrender.com';
 
-// grafiche
+// Grafiche per i mezzi di trasporto
 const GraficaMezzi = {
   piedi: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13" cy="4" r="2"/><path d="M16 8h-3a2 2 0 0 0-2 2v3l-3 7"/><path d="M11 13l3 7"/><path d="M13 8l4 6"/></svg>,
   bike: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6l-5 5.5"/><path d="M15 6a2 2 0 0 1 2 2v4"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>,
@@ -19,16 +19,16 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
   const [idMezzoSelezionato, setIdMezzoSelezionato] = useState('car');
   const [listaVeicoliDisponibili, setListaVeicoliDisponibili] = useState([]);
   
-  // staiti risultati
+  // stati risultati
   const [risultatoCalcolo, setRisultatoCalcolo] = useState(null); 
   const [infoAlberi, setInfoAlberi] = useState(null);
 
-  // carico i veicoli di messo.py
+  // Carico i veicoli dal server
   useEffect(() => {
     fetch(`${INDIRIZZO_SERVER}/api/veicoli`)
       .then(risposta => risposta.json())
       .then(dati => setListaVeicoliDisponibili(dati))
-      .catch(err => console.error("Impossibile caricare i veicoli", err)); //errore generico
+      .catch(err => console.error("Impossibile caricare i veicoli", err));
   }, []);
 
   const avviaCalcoloPercorso = async () => {
@@ -36,7 +36,7 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
     setInfoAlberi(null);
 
     try {
-      const pacchettoDati = { //acquisisco i dati
+      const pacchettoDati = { 
         start: datiItinerario.partenza,
         end: datiItinerario.destinazione,
         mezzo: idMezzoSelezionato
@@ -45,18 +45,32 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
       const rispostaNav = await fetch(`${INDIRIZZO_SERVER}/api/navigazione`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        credentials: 'include', // <--- FONDAMENTALE: Invia il cookie al server
         body: JSON.stringify(pacchettoDati)
       });
 
       const datiNavigazione = await rispostaNav.json();
 
       if (datiNavigazione.ok) {
+        
+        // --- BLOCCO DIAGNOSTICA (DEBUG) ---
+        // Controlliamo se il server ha ricevuto il cookie ed è riuscito a vedere chi siamo
+        console.log("Stato Login Backend:", datiNavigazione.is_logged);
+
+        if (datiNavigazione.is_logged === false) {
+           // Se entri qui, il browser ha bloccato il cookie!
+           alert("⚠️ ATTENZIONE: Il backend NON ti vede loggato! Il viaggio è stato calcolato ma NON salvato nel Database. (Problema Cookie Terze Parti)");
+        } else {
+           // Se entri qui, è tutto perfetto
+           console.log("✅ SUCCESSO: Login riconosciuto, viaggio salvato.");
+        }
+        // ----------------------------------
+
         setRisultatoCalcolo(datiNavigazione); // mostro i risultati
         
         const valoreCO2 = parseFloat(datiNavigazione.emissioni_co2); 
         
-        if (!isNaN(valoreCO2) && valoreCO2 > 0) { // gestisco i casi e mando un formato easy da leggere
+        if (!isNaN(valoreCO2) && valoreCO2 > 0) { 
             try {
                 const rispostaAlberi = await fetch(`${INDIRIZZO_SERVER}/api/calcolo-alberi`, {
                     method: 'POST',
@@ -66,22 +80,23 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
                 const datiAlberi = await rispostaAlberi.json();
                 if (datiAlberi.ok) setInfoAlberi(datiAlberi.messaggio);
             } catch (err) { 
-              console.error("Errore API alberi:", err);  //errpre generico
+              console.error("Errore API alberi:", err);
             }
         }
       } else { 
-        alert(datiNavigazione.errore || "Errore nel calcolo del percorso");  // altro erroe
+        alert(datiNavigazione.errore || "Errore nel calcolo del percorso");
       }
     } catch (e) { 
-      alert("Errore di connessione al server"); //altro errore geerico
+      console.error(e);
+      alert("Errore di connessione al server");
     }
   };
 
-  const aggiornaInput = (campo, valore) => {// per aggiornare
+  const aggiornaInput = (campo, valore) => {
     setDatiItinerario(prev => ({ ...prev, [campo]: valore }));
   };
 
-  return ( // froteeeeeeeeeeeeeeeeeeeeeeeeeeeeend
+  return (
     <div className="newtrip-page">
       
       <header className="hero-header fade-in">
@@ -117,7 +132,6 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
                   className={`v-btn ${idMezzoSelezionato === veicolo.id ? 'active' : ''}`}
                 >
                   <div className="v-circle">
-                    {/* Fallback icona se non trovata in GraficaMezzi */}
                     {GraficaMezzi[veicolo.id] || <span>🚗</span>}
                   </div>
                   <span className="v-label">{veicolo.label || veicolo.id}</span>
