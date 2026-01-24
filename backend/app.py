@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
-from werkzeug.middleware.proxy_fix import ProxyFix # NECESSARIO per Render
+from werkzeug.middleware.proxy_fix import ProxyFix # NECESSARIO PER RENDER
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
@@ -11,20 +11,20 @@ import os
 
 app = Flask(__name__)
 
-# --- 1. CONFIGURAZIONE SICUREZZA PER RENDER ---
-# Dice a Flask che siamo dietro un proxy HTTPS (Render)
+# --- 1. CONFIGURAZIONE SICUREZZA E COOKIE (PER RENDER) ---
+# Questo serve perché Render usa HTTPS dietro un proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Chiave segreta (prende quella di Render o usa quella di default per locale)
+# Chiave segreta: usa quella di Render o una di default
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura")
 
-# Impostazioni Cookie per farli viaggiare tra CloudFront e Render
+# Impostazioni Cookie per farli funzionare tra CloudFront e Render
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 
-# --- 2. CORS (PERMETTE A CLOUDFRONT DI ACCEDERE) ---
-# Questo abilita le richieste dal tuo Frontend su CloudFront
+# --- 2. CORS (CONNESSIONE FRONTEND) ---
+# Sostituisci l'URL se cambia, ma questo è quello corretto dai tuoi screen
 CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials=True)
 
 # --- ROTTE AUTENTICAZIONE ---
@@ -32,7 +32,7 @@ CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json() or {}
-    # Convertiamo username in minuscolo per evitare duplicati "Marco"/"marco"
+    # Username sempre minuscolo e senza spazi per evitare errori
     username_input = data.get('username', '').lower().strip()
     password_input = data.get('password')
     
@@ -57,23 +57,13 @@ def api_login():
 @app.route('/api/registrati', methods=['POST'])
 def api_registrati():
     data = request.get_json() or {}
-    # Username sempre minuscolo
     username = data.get('username', '').lower().strip()
-    password = data.get('password')
-    regione = data.get('regione')
-    email = data.get('email')
-    
-    ok, msg = auth_service.register_user(username, password, regione, email)
-    return jsonify({"ok": ok, "messaggio": msg}), 201 if ok else 409
+    return jsonify(auth_service.register_user(username, data.get('password'), data.get('regione'), data.get('email')))
 
 @app.route('/api/conferma', methods=['POST'])
 def api_conferma():
     data = request.get_json() or {}
-    username = data.get('username', '').lower().strip()
-    codice = data.get('codice')
-    
-    ok, msg = auth_service.verify_user(username, codice)
-    return jsonify({"ok": ok, "messaggio": msg}), 200 if ok else 400
+    return jsonify(auth_service.verify_user(data.get('username', '').lower().strip(), data.get('codice')))
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
@@ -117,11 +107,11 @@ def navigazione():
     if not start or not end:
         return jsonify({"ok": False, "errore": "Indirizzi mancanti"}), 400
     
-    # 1. Calcolo percorso con Google Maps
+    # 1. Calcolo Google Maps
     route = maps.get_google_distance(start, end)  
     
     if not route:
-        return jsonify({"ok": False, "errore": "Percorso non trovato (Verifica indirizzi o API Key)"}), 400
+        return jsonify({"ok": False, "errore": "Percorso non trovato (Verifica API Key o indirizzi)"}), 400
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
 
@@ -131,13 +121,13 @@ def navigazione():
     else:
         emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo)
 
-    # 3. Salvataggio nel DB (Se loggato)
+    # 3. Salvataggio nel DB (Se utente loggato)
     current_username = session.get('username') 
     
     if current_username:
         print(f"🔄 Tentativo salvataggio viaggio per: {current_username}...")
         try:
-            # storico.registra_viaggio ora gestisce la conversione Decimal/String internamente
+            # Chiama storico.py (che ora ha la funzione safe_float e Decimal integrata)
             esito = storico.registra_viaggio(
                 username=current_username,
                 co2=emissioni,
@@ -147,27 +137,27 @@ def navigazione():
                 end=route.get('end_address')      
             )
             if esito:
-                print("✅ Viaggio salvato correttamente nel DB.")
+                print("✅ Viaggio salvato correttamente.")
             else:
-                print("❌ ERRORE DB: storico.registra_viaggio ha restituito False.")
+                print("❌ ERRORE DB: salvataggio fallito.")
         except Exception as e:
              print(f"❌ ERRORE GRAVE DURANTE IL SALVATAGGIO: {e}")
     
     map_url = maps.get_embed_map_url(route.get('start_address'), route.get('end_address'))
 
+    # Restituiamo i dati per il frontend
     return jsonify({
         "ok": True,
         "start_address": route.get('start_address'),
         "end_address": route.get('end_address'),
         "distanza_testo": route.get('distanza_testo'),
-        "emissioni_co2": f"{emissioni:.2f} kg di CO₂", # Stringa formattata per il frontend
+        "emissioni_co2": f"{emissioni:.2f} kg di CO₂", # Formattazione stringa per visualizzazione
         "mezzo_scelto": mezzo,
         "is_logged": bool(current_username),
         "map_url": map_url
     })
 
-# --- STORICO E STATISTICHE ---
-
+# --- STORICO ---
 @app.route('/api/storico', methods=['GET'])
 def api_storico():
     user = session.get('username')
@@ -177,11 +167,11 @@ def api_storico():
     return jsonify(dati)
 
 
-# --- ROTTA FONDAMENTALE PER IL PROFILO (WRAPPED) ---
+# --- ROTTA FONDAMENTALE (WRAPPED) - QUELLA CHE RISOLVE IL PROBLEMA "0 DATI" ---
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
 @app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
-    # 1. Chi è l'utente target?
+    # 1. Determina l'utente (loggato o cercato)
     current_username = session.get('username')
     target_user = username if username else current_username
     
@@ -191,10 +181,10 @@ def api_wrapped(username):
     print(f"📊 Generazione statistiche (Wrapped) per: {target_user}")
 
     try:
-        # 2. Otteniamo i dati da storico.py
+        # 2. Ottieni statistiche da storico.py (che ora è blindato contro i crash)
         stats = storico.genera_wrapped(target_user)
 
-        # 3. Oggetto vuoto di fallback (tutto a zero)
+        # 3. Oggetto vuoto di sicurezza (se non ci sono viaggi)
         stats_vuote = {
             "viaggi_totali": 0, "co2_risparmiata": 0,
             "km_totali": 0, "mezzo_preferito": "Nessuno"
@@ -202,21 +192,21 @@ def api_wrapped(username):
 
         dati_finali = stats if stats else stats_vuote
 
-        # 4. TRUCCO "DOPPIA RISPOSTA" (FIX PER IL FRONTEND)
-        # Inviamo i dati sia dentro "dati" (per il profilo)
-        # sia "spalmati" nella radice del JSON (per ricerca utenti/altro)
+        # 4. IL TRUCCO "DOPPIA RISPOSTA"
+        # Il frontend riceve i dati SIA dentro "dati" SIA nella radice.
+        # Così non può sbagliare a leggerli.
         risposta = {
             "ok": True,
             "target": target_user,
-            "dati": dati_finali,  # <--- React spesso cerca qui (res.dati.viaggi_totali)
-            **dati_finali         # <--- React a volte cerca qui (res.viaggi_totali)
+            "dati": dati_finali,  # <--- Per chi cerca res.dati
+            **dati_finali         # <--- Per chi cerca res.viaggi_totali
         }
         
         return jsonify(risposta)
 
     except Exception as e:
         print(f"❌ CRASH WRAPPED APP.PY: {e}")
-        # In caso di errore grave, restituisci comunque zeri per non rompere la pagina
+        # In caso di errore gravissimo, restituisci comunque zeri puliti per non rompere la pagina
         return jsonify({"ok": True, "dati": stats_vuote, **stats_vuote})
 
 
@@ -225,9 +215,12 @@ def api_calcolo_alberi():
     data = request.get_json() or {}
     co2_input = data.get('co2')
     
-    # Se arriva come stringa "10.5 kg...", proviamo a pulirla
+    # Pulizia input nel caso arrivi "10 kg"
     if isinstance(co2_input, str):
-        co2_input = co2_input.split(' ')[0] # Prende solo il numero prima di "kg"
+        try:
+            co2_input = co2_input.split(' ')[0]
+        except:
+            pass
 
     try:
         co2_valore = float(co2_input)
