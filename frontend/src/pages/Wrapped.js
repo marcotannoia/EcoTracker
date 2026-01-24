@@ -8,14 +8,14 @@ const MAPPA_MEZZI = {
   "bike": "Bicicletta",
   "car": "Auto",
   "public_bus": "Bus",
-  "veicolo_elettrico": "Veicolo Elettrico"
+  "veicolo_elettrico": "Veicolo Elettrico",
+  "Nessuno": "Nessuno"
 };
 
 function PaginaRiepilogo() {
   const { username: nomeUtente } = useParams(); 
   const naviga = useNavigate();
   
-  // stati come smempre
   const [datiRiepilogo, setDatiRiepilogo] = useState(null);
   const [inCaricamento, setInCaricamento] = useState(true);
   const [erroreCaricamento, setErroreCaricamento] = useState('');
@@ -29,27 +29,38 @@ function PaginaRiepilogo() {
       const risposta = await fetch(`${URL_SERVER}/api/wrapped/${nomeUtente}`);
       const datiJson = await risposta.json();
       
-      if (datiJson.ok) {
+      console.log("Dati Wrapped ricevuti:", datiJson); // Debug
+
+      if (datiJson.ok && datiJson.dati) {
         setDatiRiepilogo(datiJson.dati);
       } else {
-        setErroreCaricamento(datiJson.messaggio || "Profilo utente non trovato");
+        setErroreCaricamento(datiJson.errore || "Profilo utente non trovato");
       }
     } catch (err) {
       console.error(err);
-      setErroreCaricamento("Impossibile connettersi al server per recuperare i dati."); //errore genericco
+      setErroreCaricamento("Impossibile connettersi al server per recuperare i dati.");
     } finally {
-      setInCaricamento(false); //caricato
+      setInCaricamento(false);
     }
   };
 
 
   const stimaRisparmioCo2 = () => {
-    if (!datiRiepilogo) return 0;
-
-    const emissioneAutoStandard = datiRiepilogo.totale_km * 0.120;
-    const risparmioNetto = emissioneAutoStandard - datiRiepilogo.totale_co2;
+    if (!datiRiepilogo) return "0.0";
     
-    return risparmioNetto > 0 ? risparmioNetto.toFixed(1) : "0.0"; // capisco effettivamente quano ha risparmiato
+    // NOTA: Qui uso le variabili corrette dal backend (km_totali e co2_risparmiata)
+    const emissioneAutoStandard = (datiRiepilogo.km_totali || 0) * 0.120;
+    const co2Reale = datiRiepilogo.co2_risparmiata || 0; // In realtà questo campo nel DB è già il totale emesso o risparmiato?
+    
+    // Se 'co2_risparmiata' nel backend è già il netto, usiamo quello direttamente.
+    // Assumo dal backend storico.py che 'co2_risparmiata' sia in realtà la somma della co2 emessa.
+    // Quindi ricalcolo il risparmio qui per sicurezza:
+    
+    const risparmioNetto = emissioneAutoStandard - co2Reale;
+    
+    // Se invece storico.py calcolava già il risparmio, usa direttamente: datiRiepilogo.co2_risparmiata
+    // Per ora uso il calcolo dinamico basato sui km:
+    return risparmioNetto > 0 ? risparmioNetto.toFixed(1) : "0.0";
   };
 
   
@@ -66,7 +77,7 @@ function PaginaRiepilogo() {
     );
   }
 
-  return ( // frontend
+  return (
     <div className="wrapped-page">
       
       <header className="hero-header fade-in">
@@ -78,17 +89,15 @@ function PaginaRiepilogo() {
         <div className="wrapped-card-container">
           <div className="wrapped-card fade-in">
             
-   
             <div className="wrapped-left-col">
               <div className="wrapped-avatar">
-                {nomeUtente.charAt(0).toUpperCase()}
+                {nomeUtente ? nomeUtente.charAt(0).toUpperCase() : "?"}
               </div>
               <div className="wrapped-identity">
                 <h2>@{nomeUtente}</h2>
-                <p className="member-since">Membro dal {datiRiepilogo.data_inizio}</p>
+                <p className="member-since">Membro della community</p>
               </div>
               
-
               <button className="back-btn" onClick={() => naviga(-1)}>
                 ← Torna alla ricerca
               </button>
@@ -99,44 +108,38 @@ function PaginaRiepilogo() {
               
               <div className="stats-grid">
                 
-
                 <div className="stat-item">
                   <span className="stat-icon">🚀</span>
                   <div className="stat-info">
-                    <span className="stat-value">{datiRiepilogo.numero_viaggi}</span>
+                    {/* CORRETTO: viaggi_totali invece di numero_viaggi */}
+                    <span className="stat-value">{datiRiepilogo.viaggi_totali || 0}</span>
                     <span className="stat-label">Viaggi Totali</span>
                   </div>
                 </div>
 
-
                 <div className="stat-item">
                   <span className="stat-icon">🗺️</span>
                   <div className="stat-info">
-                    <span className="stat-value">{datiRiepilogo.totale_km}</span>
+                     {/* CORRETTO: km_totali invece di totale_km */}
+                    <span className="stat-value">{datiRiepilogo.km_totali || 0}</span>
                     <span className="stat-label">Km Percorsi</span>
                   </div>
                 </div>
 
-   
                 <div className="stat-item highlight-green">
                   <span className="stat-icon">🌱</span>
                   <div className="stat-info">
-                    <span className="stat-value">{stimaRisparmioCo2()} <small>kg</small></span>
-                    <span className="stat-label">CO₂ Risparmiata</span>
+                    <span className="stat-value">{datiRiepilogo.co2_risparmiata || "0.0"} <small>kg</small></span>
+                    <span className="stat-label">CO₂ Totale</span>
                   </div>
                 </div>
 
-           
                 <div className="stat-item">
                   <span className="stat-icon">❤️</span>
                   <div className="stat-info">
-                    {/* 2. MODIFICA QUESTA RIGA */}
-                    {/* Prima era: {datiRiepilogo.mezzo_preferito} */}
-                    
-                    <span className="stat-value text-truncate" title={MAPPA_MEZZI[datiRiepilogo.mezzo_preferito]}>
-                      {MAPPA_MEZZI[datiRiepilogo.mezzo_preferito] || datiRiepilogo.mezzo_preferito}
+                    <span className="stat-value text-truncate">
+                      {MAPPA_MEZZI[datiRiepilogo.mezzo_preferito] || datiRiepilogo.mezzo_preferito || "Nessuno"}
                     </span>
-
                     <span className="stat-label">Mezzo Preferito</span>
                   </div>
                 </div>

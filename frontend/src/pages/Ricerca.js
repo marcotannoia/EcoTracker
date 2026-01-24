@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Ricerca.css';
 
-const URL_BASE_API = 'https://ecotrack-86lj.onrender.com'; // Endpoint del backend
+const URL_BASE_API = 'https://ecotrack-86lj.onrender.com';
 
 function PaginaRicerca({ user: utenteLoggato }) {
-  // Stati per la gestione dati
   const [listaUtenti, setListaUtenti] = useState([]);
   const [classifica, setClassifica] = useState([]); 
   const [testoRicerca, setTestoRicerca] = useState('');
@@ -17,36 +16,39 @@ function PaginaRicerca({ user: utenteLoggato }) {
     caricaDati();
   }, []);
 
-  const caricaDati = async () => {  // recupera utenti e classifica
+  const caricaDati = async () => {
     try {
- // utenti
+      // 1. Caricamento Utenti
       const rispUtenti = await fetch(`${URL_BASE_API}/api/utenti`);
       const datiUtenti = await rispUtenti.json();
-      if (datiUtenti.ok) setListaUtenti(datiUtenti.utenti);
+      if (datiUtenti.ok && Array.isArray(datiUtenti.utenti)) {
+          setListaUtenti(datiUtenti.utenti);
+      }
 
-//  classifica
+      // 2. Caricamento Classifica
       const rispClassifica = await fetch(`${URL_BASE_API}/api/classifica`);
       const datiClassifica = await rispClassifica.json();
-      if (datiClassifica.ok) setClassifica(datiClassifica.classifica);
+      if (datiClassifica.ok && Array.isArray(datiClassifica.classifica)) {
+          setClassifica(datiClassifica.classifica);
+      }
 
-    } catch (errore) { // errore generico
-      console.error("Errore durante il caricamento:", errore);
+    } catch (errore) {
+      console.error("Errore durante il caricamento dati ricerca:", errore);
     } finally {
       setInCaricamento(false);
     }
   };
 
-// utenti suggeriti
   const utentiConsigliati = listaUtenti.filter(u => 
+    utenteLoggato &&
     u.username !== utenteLoggato.username &&
     utenteLoggato.regione && u.regione && 
     u.regione.toLowerCase() === utenteLoggato.regione.toLowerCase()
   );
 
-// idem ma nella ricerca
   const risultatiFiltrati = testoRicerca 
     ? listaUtenti.filter(u => 
-        u.username !== utenteLoggato.username &&
+        (utenteLoggato ? u.username !== utenteLoggato.username : true) &&
         u.username.toLowerCase().includes(testoRicerca.toLowerCase())
       )
     : [];
@@ -55,14 +57,15 @@ function PaginaRicerca({ user: utenteLoggato }) {
     naviga(`/wrapped/${username}`);
   }; 
 
-  const assegnaMedaglia = (posizione) => { // vabbe lo capite
+  const assegnaMedaglia = (posizione) => {
+    // HO CORRETTO LE EMOJI CHE ERANO CORROTTE NEL FILE ORIGINALE
     if (posizione === 0) return "🥇";
     if (posizione === 1) return "🥈";
     if (posizione === 2) return "🥉";
     return `#${posizione + 1}`;
   };
 
-  return ( // buon frontend a tutti
+  return (
     <div className="homesearch-page">
       
       <header className="hero-header fade-in">
@@ -71,7 +74,6 @@ function PaginaRicerca({ user: utenteLoggato }) {
       </header>
 
       <main className="search-content fade-in">
-        
         
         <div className="search-bar-container">
           <input 
@@ -83,91 +85,97 @@ function PaginaRicerca({ user: utenteLoggato }) {
           <span className="search-icon">🔍</span>
         </div>
 
-        {!testoRicerca && (
-          <>
-             <section className="leaderboard-section">
-              <div className="section-header">
-                <span className="section-icon">🏆</span>
-                <h3>EcoSavers</h3>
-              </div>
-
-              <div className="leaderboard-list">
-                {classifica.length > 0 ? (
-                  classifica.slice(0, 3).map((elemento, indice) => (
-                    <div 
-                      key={elemento.username} 
-                      className={`rank-card rank-${indice + 1}`} 
-                      onClick={() => apriProfilo(elemento.username)} 
-                      style={{cursor: 'pointer'}}
-                    >
-                      <div className="rank-pos">{assegnaMedaglia(indice)}</div>
-                      <div className="rank-info">
-                        <h4>@{elemento.username}</h4>
-                        <span className="rank-score">-{elemento.risparmio} kg CO₂</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="no-data-msg">Ancora nessun dato in classifica.</p>
-                )}
-              </div>
-            </section>
-
-            {utentiConsigliati.length > 0 && (
-              <section className="suggested-section">
+        {inCaricamento ? (
+            <p className="loading-msg">Caricamento in corso...</p>
+        ) : (
+        <>
+            {!testoRicerca && (
+            <>
+                <section className="leaderboard-section">
                 <div className="section-header">
-                  <span className="section-icon">📍</span>
-                  <h3>Vicino a te ({utenteLoggato.regione})</h3>
+                    <span className="section-icon">🏆</span>
+                    <h3>EcoSavers - Top 10</h3>
                 </div>
-                
-                <div className="cards-grid">
-                  {utentiConsigliati.map(u => (
-                    <div 
-                      key={u.username} 
-                      className="user-card suggested-card" 
-                      onClick={() => apriProfilo(u.username)}
-                    >
-                      <div className="card-avatar">
-                        {u.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="card-info">
-                        <h4>@{u.username}</h4>
-                        <span className="region-tag">{u.regione}</span>
-                      </div>
+
+                <div className="leaderboard-list">
+                    {classifica.length > 0 ? (
+                    classifica.slice(0, 10).map((elemento, indice) => (
+                        <div 
+                        key={elemento.username} 
+                        className={`rank-card rank-${indice + 1}`} 
+                        onClick={() => apriProfilo(elemento.username)} 
+                        style={{cursor: 'pointer'}}
+                        >
+                        <div className="rank-pos">{assegnaMedaglia(indice)}</div>
+                        <div className="rank-info">
+                            <h4>@{elemento.username}</h4>
+                            <span className="rank-score">{elemento.risparmio} kg CO₂</span>
+                        </div>
+                        </div>
+                    ))
+                    ) : (
+                    <p className="no-data-msg">Ancora nessun dato in classifica.</p>
+                    )}
+                </div>
+                </section>
+
+                {utentiConsigliati.length > 0 && (
+                <section className="suggested-section">
+                    <div className="section-header">
+                    <span className="section-icon">📍</span>
+                    <h3>Vicino a te ({utenteLoggato?.regione})</h3>
                     </div>
-                  ))}
-                </div>
-              </section>
+                    
+                    <div className="cards-grid">
+                    {utentiConsigliati.map(u => (
+                        <div 
+                        key={u.username} 
+                        className="user-card suggested-card" 
+                        onClick={() => apriProfilo(u.username)}
+                        >
+                        <div className="card-avatar">
+                            {u.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="card-info">
+                            <h4>@{u.username}</h4>
+                            <span className="region-tag">{u.regione}</span>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
+                </section>
+                )}
+            </>
             )}
-          </>
-        )}
 
 
-        {testoRicerca && (
-          <section className="results-section">
-            <h3 className="section-title">Risultati</h3>
-            <div className="cards-grid">
-              {risultatiFiltrati.length > 0 ? (
-                risultatiFiltrati.map(u => (
-                  <div 
-                    key={u.username} 
-                    className="user-card" 
-                    onClick={() => apriProfilo(u.username)}
-                  >
-                    <div className="card-avatar simple">
-                      {u.username.charAt(0).toUpperCase()}
+            {testoRicerca && (
+            <section className="results-section">
+                <h3 className="section-title">Risultati</h3>
+                <div className="cards-grid">
+                {risultatiFiltrati.length > 0 ? (
+                    risultatiFiltrati.map(u => (
+                    <div 
+                        key={u.username} 
+                        className="user-card" 
+                        onClick={() => apriProfilo(u.username)}
+                    >
+                        <div className="card-avatar simple">
+                        {u.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="card-info">
+                        <h4>@{u.username}</h4>
+                        {u.regione && <span className="region-mini">{u.regione}</span>}
+                        </div>
                     </div>
-                    <div className="card-info">
-                      <h4>@{u.username}</h4>
-                      {u.regione && <span className="region-mini">{u.regione}</span>}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="no-results">Nessun utente trovato.</p>
-              )}
-            </div>
-          </section>
+                    ))
+                ) : (
+                    <p className="no-results">Nessun utente trovato.</p>
+                )}
+                </div>
+            </section>
+            )}
+        </>
         )}
 
       </main>

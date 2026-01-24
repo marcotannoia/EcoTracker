@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
-from werkzeug.middleware.proxy_fix import ProxyFix # NECESSARIO PER RENDER
+from werkzeug.middleware.proxy_fix import ProxyFix 
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
@@ -11,25 +11,24 @@ import os
 
 app = Flask(__name__)
 
-# --- 1. CONFIGURAZIONE SICUREZZA (PER RENDER) ---
+# --- 1. CONFIGURAZIONE SICUREZZA ---
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura")
 
-# Impostazioni Cookie per farli viaggiare tra CloudFront e Render
+# Impostazioni Cookie
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 
-# --- 2. CORS (CONNESSIONE FRONTEND) ---
-# Sostituisci l'URL se cambia, ma questo è quello corretto dai tuoi screen
-CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials=True)
+# --- 2. CORS (PERMISSIVO PER EVITARE BLOCCHI DATI) ---
+# Ho messo origins="*" per sbloccare la visualizzazione dati da qualsiasi fonte (incluso localhost)
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 # --- ROTTE AUTENTICAZIONE ---
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json() or {}
-    # Username sempre minuscolo
     username_input = data.get('username', '').lower().strip()
     password_input = data.get('password')
     
@@ -37,7 +36,7 @@ def api_login():
     
     if user:
         session.permanent = True
-        session['username'] = user['username'] # Salviamo nel cookie
+        session['username'] = user['username']
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
         return jsonify({
@@ -82,7 +81,8 @@ def api_me():
 def get_utenti():
     try:
         lista = auth_service.get_users_list()
-        return jsonify({"ok": True, "utenti": lista})
+        # Assicuro che ritorni sempre una lista, anche vuota
+        return jsonify({"ok": True, "utenti": lista if lista else []})
     except Exception as e:
         print(f"Errore utenti: {e}")
         return jsonify({"ok": False, "utenti": []})
@@ -102,7 +102,6 @@ def navigazione():
     if not start or not end:
         return jsonify({"ok": False, "errore": "Indirizzi mancanti"}), 400
     
-    # 1. Calcolo Google Maps
     route = maps.get_google_distance(start, end)  
     
     if not route:
@@ -110,19 +109,15 @@ def navigazione():
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
 
-    # 2. Calcolo Emissioni
     if mezzo in ['bike', 'piedi', 'veicolo_elettrico']:
         emissioni = 0
     else:
         emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo)
 
-    # 3. Salvataggio nel DB (Se utente loggato)
     current_username = session.get('username') 
     
     if current_username:
-        print(f"🔄 Tentativo salvataggio viaggio per: {current_username}...")
         try:
-            # Chiama storico.py (assicurati di avere la versione con safe_float!)
             esito = storico.registra_viaggio(
                 username=current_username,
                 co2=emissioni,
@@ -132,11 +127,9 @@ def navigazione():
                 end=route.get('end_address')      
             )
             if esito:
-                print("✅ Viaggio salvato correttamente.")
-            else:
-                print("❌ ERRORE DB: salvataggio fallito.")
+                print(f"✅ Viaggio salvato per {current_username}")
         except Exception as e:
-             print(f"❌ ERRORE GRAVE DURANTE IL SALVATAGGIO: {e}")
+             print(f"❌ Errore salvataggio: {e}")
     
     map_url = maps.get_embed_map_url(route.get('start_address'), route.get('end_address'))
 
@@ -161,24 +154,19 @@ def api_storico():
     return jsonify(dati)
 
 
-# --- ROTTA WRAPPED (FONDAMENTALE PER VISUALIZZARE I DATI) ---
+# --- ROTTA WRAPPED (DATI PROFILO) ---
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
 @app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
-    # 1. Determina l'utente
     current_username = session.get('username')
     target_user = username if username else current_username
     
     if not target_user:
         return jsonify({"ok": False, "errore": "Utente non specificato"}), 401 
 
-    print(f"📊 Generazione statistiche per: {target_user}")
-
     try:
-        # 2. Ottieni statistiche da storico.py
         stats = storico.genera_wrapped(target_user)
 
-        # 3. Oggetto vuoto di sicurezza (se non ci sono viaggi)
         stats_vuote = {
             "viaggi_totali": 0, "co2_risparmiata": 0,
             "km_totali": 0, "mezzo_preferito": "Nessuno"
@@ -186,21 +174,18 @@ def api_wrapped(username):
 
         dati_finali = stats if stats else stats_vuote
 
-        # 4. IL TRUCCO "DOPPIA RISPOSTA"
-        # Mettiamo i dati OVUNQUE, così il frontend li trova per forza.
+        # Restituisco i dati in un formato che il frontend Wrapped.js può leggere facilmente
         risposta = {
             "ok": True,
             "target": target_user,
-            "dati": dati_finali,  # <--- Per chi cerca res.dati
-            **dati_finali         # <--- Per chi cerca res.viaggi_totali
+            "dati": dati_finali 
         }
         
         return jsonify(risposta)
 
     except Exception as e:
-        print(f"❌ CRASH WRAPPED APP.PY: {e}")
-        # In caso di errore grave, restituisci comunque zeri puliti
-        return jsonify({"ok": True, "dati": stats_vuote, **stats_vuote})
+        print(f"❌ Errore Wrapped: {e}")
+        return jsonify({"ok": False, "errore": str(e)})
 
 
 @app.route('/api/calcolo-alberi', methods=['POST'])
@@ -208,7 +193,6 @@ def api_calcolo_alberi():
     data = request.get_json() or {}
     co2_input = data.get('co2')
     
-    # Pulizia input nel caso arrivi "10 kg"
     if isinstance(co2_input, str):
         try:
             co2_input = co2_input.split(' ')[0]
