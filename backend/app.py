@@ -172,18 +172,43 @@ def api_storico_completo():
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
 @app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
+    # 1. Determina chi è l'utente target
     current_username = session.get('username')
     target_user = username if username else current_username
     
     if not target_user:
         return jsonify({"ok": False, "errore": "Utente non specificato."}), 401 
     
+    # 2. Genera le statistiche (usando storico.py che ora è 'blindato')
     stats = storico.genera_wrapped(target_user)
 
+    # 3. Gestione caso "Nessun dato"
     if stats is None:
-        return jsonify({"ok": False, "messaggio": f"Nessun dato per {target_user}"}), 404 
+        # Invece di dare errore 404 (che fa crashare il frontend), 
+        # restituiamo un oggetto "vuoto" ma valido con tutti zeri.
+        stats_vuote = {
+            "viaggi_totali": 0,
+            "co2_risparmiata": 0,
+            "km_totali": 0,
+            "mezzo_preferito": "Nessuno"
+        }
+        return jsonify({
+            "ok": True, 
+            "dati": stats_vuote, 
+            **stats_vuote # "Appiattiamo" i dati anche nella radice del JSON
+        })
 
-    return jsonify({"ok": True, "dati": stats, "target": target_user})
+    # 4. RISPOSTA UNIVERSALE (Il trucco!)
+    # Mandiamo i dati sia dentro "dati" che "sciolti" nel JSON principale.
+    response_data = {
+        "ok": True, 
+        "dati": stats, 
+        "target": target_user
+    }
+    # Aggiungiamo le chiavi (viaggi_totali, ecc.) anche al livello principale
+    response_data.update(stats) 
+
+    return jsonify(response_data)
 
 @app.route('/api/calcolo-alberi', methods=['POST'])
 def api_calcolo_alberi():
