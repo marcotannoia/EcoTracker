@@ -9,7 +9,7 @@ import Iridescence from './components/Iridescence';
 import Dock from './components/Dock'; 
 import './App.css'; 
 
-const INDIRIZZO_API = 'http://localhost:5000'; // come sempre sto nel baackedn
+const INDIRIZZO_API = 'https://ecotrack-86lj.onrender.com'; // come sempre sto nel baackedn
 
 function ContenutoApp() {
   const [utenteLoggato, setUtenteLoggato] = useState(null);

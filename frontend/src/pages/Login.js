@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 
-const URL_SERVER = 'http://localhost:5000';
+const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
 
 function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
   

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './Wrapped.css'; 
 
-const URL_SERVER = 'http://localhost:5000';
+const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
 const MAPPA_MEZZI = {
   "piedi": "A piedi",
   "bike": "Bicicletta",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './NuovoViaggio.css'; 
 
-const INDIRIZZO_SERVER = 'http://localhost:5000';
+const INDIRIZZO_SERVER = 'https://ecotrack-86lj.onrender.com';
 
 // grafiche
 const GraficaMezzi = {

@@ -14,7 +14,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False 
 app.config['SESSION_COOKIE_HTTPONLY'] = True 
 
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"]) 
+CORS(app, supports_credentials=True, origins=["https://ecotrack-86lj.onrender.com"]) 
 
 # autenticazione
 @app.route('/api/login', methods=['POST'])
@@ -193,5 +193,5 @@ def api_classifica():
         return jsonify({"ok": False, "classifica": []})
     
 if __name__ == '__main__':
-    print("Server EcoRoute attivo su http://localhost:5000")
+    print("Server EcoRoute attivo su https://ecotrack-86lj.onrender.com")
     app.run(host='0.0.0.0', port=5000, debug=True)
