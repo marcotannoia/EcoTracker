@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Ricerca.css';
 
-const URL_BASE_API = 'http://localhost:5000'; // Endpoint del backend
+const URL_BASE_API = 'https://ecotrack-86lj.onrender.com'; // Endpoint del backend
 
 function PaginaRicerca({ user: utenteLoggato }) {
   // Stati per la gestione dati

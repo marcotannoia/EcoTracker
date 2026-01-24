@@ -8,6 +8,7 @@ import storico
 from alberiCO2 import alberiCO2
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = "chiave-segreta-super-sicura"
 
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
