@@ -11,14 +11,11 @@ import os
 
 app = Flask(__name__)
 
-# --- 1. CONFIGURAZIONE SICUREZZA E COOKIE (PER RENDER) ---
-# Questo serve perché Render usa HTTPS dietro un proxy
+# --- 1. CONFIGURAZIONE SICUREZZA (PER RENDER) ---
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-# Chiave segreta: usa quella di Render o una di default
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura")
 
-# Impostazioni Cookie per farli funzionare tra CloudFront e Render
+# Impostazioni Cookie per farli viaggiare tra CloudFront e Render
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
@@ -32,7 +29,7 @@ CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json() or {}
-    # Username sempre minuscolo e senza spazi per evitare errori
+    # Username sempre minuscolo
     username_input = data.get('username', '').lower().strip()
     password_input = data.get('password')
     
@@ -43,8 +40,6 @@ def api_login():
         session['username'] = user['username'] # Salviamo nel cookie
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
-        
-        print(f"🔑 Login effettuato: {user['username']}")
         return jsonify({
             "ok": True, 
             "username": user['username'], 
@@ -111,7 +106,7 @@ def navigazione():
     route = maps.get_google_distance(start, end)  
     
     if not route:
-        return jsonify({"ok": False, "errore": "Percorso non trovato (Verifica API Key o indirizzi)"}), 400
+        return jsonify({"ok": False, "errore": "Percorso non trovato"}), 400
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
 
@@ -127,7 +122,7 @@ def navigazione():
     if current_username:
         print(f"🔄 Tentativo salvataggio viaggio per: {current_username}...")
         try:
-            # Chiama storico.py (che ora ha la funzione safe_float e Decimal integrata)
+            # Chiama storico.py (assicurati di avere la versione con safe_float!)
             esito = storico.registra_viaggio(
                 username=current_username,
                 co2=emissioni,
@@ -145,13 +140,12 @@ def navigazione():
     
     map_url = maps.get_embed_map_url(route.get('start_address'), route.get('end_address'))
 
-    # Restituiamo i dati per il frontend
     return jsonify({
         "ok": True,
         "start_address": route.get('start_address'),
         "end_address": route.get('end_address'),
         "distanza_testo": route.get('distanza_testo'),
-        "emissioni_co2": f"{emissioni:.2f} kg di CO₂", # Formattazione stringa per visualizzazione
+        "emissioni_co2": f"{emissioni:.2f} kg di CO₂", 
         "mezzo_scelto": mezzo,
         "is_logged": bool(current_username),
         "map_url": map_url
@@ -167,21 +161,21 @@ def api_storico():
     return jsonify(dati)
 
 
-# --- ROTTA FONDAMENTALE (WRAPPED) - QUELLA CHE RISOLVE IL PROBLEMA "0 DATI" ---
+# --- ROTTA WRAPPED (FONDAMENTALE PER VISUALIZZARE I DATI) ---
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
 @app.route('/api/wrapped/<username>', methods=['GET'])
 def api_wrapped(username):
-    # 1. Determina l'utente (loggato o cercato)
+    # 1. Determina l'utente
     current_username = session.get('username')
     target_user = username if username else current_username
     
     if not target_user:
         return jsonify({"ok": False, "errore": "Utente non specificato"}), 401 
 
-    print(f"📊 Generazione statistiche (Wrapped) per: {target_user}")
+    print(f"📊 Generazione statistiche per: {target_user}")
 
     try:
-        # 2. Ottieni statistiche da storico.py (che ora è blindato contro i crash)
+        # 2. Ottieni statistiche da storico.py
         stats = storico.genera_wrapped(target_user)
 
         # 3. Oggetto vuoto di sicurezza (se non ci sono viaggi)
@@ -193,8 +187,7 @@ def api_wrapped(username):
         dati_finali = stats if stats else stats_vuote
 
         # 4. IL TRUCCO "DOPPIA RISPOSTA"
-        # Il frontend riceve i dati SIA dentro "dati" SIA nella radice.
-        # Così non può sbagliare a leggerli.
+        # Mettiamo i dati OVUNQUE, così il frontend li trova per forza.
         risposta = {
             "ok": True,
             "target": target_user,
@@ -206,7 +199,7 @@ def api_wrapped(username):
 
     except Exception as e:
         print(f"❌ CRASH WRAPPED APP.PY: {e}")
-        # In caso di errore gravissimo, restituisci comunque zeri puliti per non rompere la pagina
+        # In caso di errore grave, restituisci comunque zeri puliti
         return jsonify({"ok": True, "dati": stats_vuote, **stats_vuote})
 
 
