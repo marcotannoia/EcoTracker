@@ -1,21 +1,32 @@
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix # <--- 1. IMPORTANTE: Importa questo
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
 import login as auth_service 
 import storico
 from alberiCO2 import alberiCO2
+import os
 
 app = Flask(__name__)
-CORS(app)
-app.secret_key = "chiave-segreta-super-sicura"
 
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False 
-app.config['SESSION_COOKIE_HTTPONLY'] = True 
- # Sostituisci la vecchia riga CORS(app) con questa:
+# 2. CONFIGURAZIONE PER RENDER (ProxyFix)
+# Questo dice a Flask: "Fidati che siamo su HTTPS anche se Render gestisce il certificato"
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Configurazione Segreta
+app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura")
+
+# 3. CORREZIONE COOKIE (Fondamentale per CloudFront -> Render)
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # <--- Deve essere 'None' per cross-site
+app.config['SESSION_COOKIE_SECURE'] = True      # <--- Deve essere True se SameSite è None
+app.config['SESSION_COOKIE_HTTPONLY'] = True    # Protegge da furti via JS
+
+# CORS (Lascia così, è perfetto)
 CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials=True)
+
+# --- ROTTE ---
 
 # autenticazione
 @app.route('/api/login', methods=['POST'])
@@ -40,16 +51,12 @@ def api_login():
 @app.route('/api/registrati', methods=['POST'])
 def api_registrati():
     data = request.get_json() or {}
-    
-    # Recupero i dati, inclusa la nuova Email
     username = data.get('username')
     password = data.get('password')
     regione = data.get('regione')
-    email = data.get('email') # <--- NUOVO
+    email = data.get('email')
     
-    # Passo l'email alla funzione di registrazione
     ok, msg = auth_service.register_user(username, password, regione, email)
-    
     return jsonify({"ok": ok, "messaggio": msg}), 201 if ok else 409
 
 @app.route('/api/conferma', methods=['POST'])
@@ -194,5 +201,7 @@ def api_classifica():
         return jsonify({"ok": False, "classifica": []})
     
 if __name__ == '__main__':
-    print("Server EcoRoute attivo su https://ecotrack-86lj.onrender.com")
+    # Nota: su Render si usa Gunicorn, quindi questa parte viene ignorata in produzione,
+    # ma è utile per testare in locale.
+    print("Server EcoRoute attivo")
     app.run(host='0.0.0.0', port=5000, debug=True)
