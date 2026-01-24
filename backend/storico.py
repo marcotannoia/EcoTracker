@@ -4,15 +4,13 @@ import time
 from datetime import datetime
 from decimal import Decimal
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # --- CONFIGURAZIONE ---
-# Usa le variabili d'ambiente per sicurezza
-REGION = os.getenv("AWS_REGION", "eu-south-1")
-ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
-SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+# Su Render le variabili d'ambiente sono già caricate dal sistema.
+# Non serve load_dotenv.
+REGION = os.environ.get("AWS_REGION", "eu-south-1")
+ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID")
+SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 TABLE_NAME = "EcoTrack_viaggi"
 
 # --- CONNESSIONE AL DATABASE ---
@@ -40,16 +38,16 @@ def registra_viaggio(username, co2, km, mezzo, start, end):
     try:
         user_clean = str(username).lower().strip()
         
-        # TIMESTAMP: Deve essere stringa perché nel tuo DB la chiave è Stringa
+        # TIMESTAMP: Stringa (perché nel DB la chiave è Stringa)
         timestamp_now = str(int(time.time())) 
         
-        # NUMERI: DynamoDB vuole Decimal, non float
+        # NUMERI: DynamoDB vuole Decimal
         co2_decimal = Decimal(str(co2))
         km_decimal = Decimal(str(km))
 
         item = {
-            'username': user_clean,           # Partition Key
-            'timestamp': timestamp_now,       # Sort Key (Stringa!)
+            'username': user_clean,           
+            'timestamp': timestamp_now,       
             'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'co2': co2_decimal,
             'km': km_decimal,
@@ -93,7 +91,7 @@ def get_storico_completo(username):
             
             storico_pulito.append(viaggio_temp)
 
-        # Ordina dal più recente (basandosi sul timestamp stringa)
+        # Ordina dal più recente
         storico_pulito.sort(key=lambda x: x.get('timestamp', '0'), reverse=True)
         
         return {"ok": True, "viaggi": storico_pulito}
@@ -104,22 +102,15 @@ def get_storico_completo(username):
 
 
 def genera_wrapped(username):
-    """
-    Calcola le statistiche totali (Wrapped) dell'utente.
-    """
-    # Usiamo la funzione interna per prendere i dati
     dati = get_storico_completo(username)
     viaggi = dati.get('viaggi', [])
     
     if not viaggi: 
-        print(f"Nessun viaggio trovato per {username} per il Wrapped.")
         return None
 
-    # Calcoli statistici
     totale_co2 = sum(v['co2'] for v in viaggi)
     totale_km = sum(v['km'] for v in viaggi)
     
-    # Calcolo mezzo preferito
     counts = {}
     for v in viaggi:
         m = v.get('mezzo', 'sconosciuto')
@@ -136,48 +127,37 @@ def genera_wrapped(username):
 
 
 def get_classifica_risparmio():
-    """
-    Genera la classifica globale aggregando i dati di tutti gli utenti.
-    """
     try:
-        # Scansione completa della tabella
         response = table.scan()
         data = response.get('Items', [])
         
         user_stats = {}
-        
-        # 1. Aggrega i dati per utente
         for d in data:
             u = d.get('username', 'anonimo')
             try:
-                # Gestione robusta: converte in float sia che sia Decimal o altro
                 raw_co2 = d.get('co2', 0)
                 val_co2 = float(raw_co2)
                 
                 if u not in user_stats:
                     user_stats[u] = 0.0
                 user_stats[u] += val_co2
-            except Exception as e: 
-                continue # Salta dati corrotti
+            except Exception: 
+                continue
             
-        # 2. Crea la lista finale ordinata
         classifica = []
         for user, totale in user_stats.items():
             totale_round = round(totale, 2)
-            
             classifica.append({
                 "username": user,
                 "co2": totale_round,          
                 "risparmio": totale_round,    
                 "score": int(totale_round),
-                "regione": "Global", # Placeholder
+                "regione": "Global",
                 "avatar": user[0].upper() if user else "?"
             })
             
-        # Ordina decrescente in base alla CO2
         classifica.sort(key=lambda x: x['co2'], reverse=True)
-        
-        return classifica[:10] # Ritorna la Top 10
+        return classifica[:10]
         
     except Exception as e:
         print(f"❌ Errore GRAVE classifica: {str(e)}")
