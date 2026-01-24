@@ -6,6 +6,7 @@ from decimal import Decimal
 import os
 
 # --- CONFIGURAZIONE ---
+# Niente dotenv, usiamo le variabili di sistema di Render
 REGION = os.environ.get("AWS_REGION", "eu-south-1")
 ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID")
 SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
@@ -24,23 +25,30 @@ try:
 except Exception as e:
     print(f"❌ ERRORE CRITICO DB: {str(e)}")
 
-# --- FUNZIONE DI PULIZIA DATI ---
+
+# --- IL SANIFICATORE (La funzione che ti salva dal crash) ---
 def safe_float(valore):
-    """Converte qualsiasi cosa (Decimal, stringa, int) in float in modo sicuro."""
+    """
+    Converte qualsiasi cosa (Decimal, Stringa, Int, None) in float.
+    Se il dato è corrotto, restituisce 0.0 invece di far crashare il server.
+    """
     try:
-        if valore is None: return 0.0
+        if valore is None:
+            return 0.0
         return float(valore)
     except Exception:
         return 0.0
+
 
 # --- FUNZIONI CORE ---
 
 def registra_viaggio(username, co2, km, mezzo, start, end):
     try:
         user_clean = str(username).lower().strip()
+        # Timestamp come stringa per compatibilità DB esistente
         timestamp_now = str(int(time.time())) 
         
-        # Salviamo come Decimal per correttezza su DynamoDB
+        # Salviamo come Decimal su DB (Best Practice)
         co2_decimal = Decimal(str(co2))
         km_decimal = Decimal(str(km))
 
@@ -62,21 +70,24 @@ def registra_viaggio(username, co2, km, mezzo, start, end):
         print(f"❌ ERRORE SALVATAGGIO: {e}")
         return False
 
+
 def get_storico_completo(username):
     try:
         user_clean = str(username).lower().strip()
         response = table.query(KeyConditionExpression=Key('username').eq(user_clean))
         items = response.get('Items', [])
         
-        # PULIZIA DATI FONDAMENTALE
+        # PULIZIA DATI PER IL FRONTEND
         storico_pulito = []
         for v in items:
             viaggio = v.copy()
-            # Forziamo la conversione in float di TUTTO per evitare crash
+            # Convertiamo tutto in float usando il sanificatore
             viaggio['co2'] = safe_float(viaggio.get('co2'))
             viaggio['km'] = safe_float(viaggio.get('km'))
+            
             storico_pulito.append(viaggio)
 
+        # Ordina dal più recente
         storico_pulito.sort(key=lambda x: x.get('timestamp', '0'), reverse=True)
         return {"ok": True, "viaggi": storico_pulito}
 
@@ -84,18 +95,20 @@ def get_storico_completo(username):
         print(f"Errore storico: {e}")
         return {"ok": False, "viaggi": []}
 
+
 def genera_wrapped(username):
-    # Usa get_storico_completo che ora restituisce numeri puliti (float)
+    # 1. Recupera lo storico (già pulito da safe_float grazie alla funzione sopra)
     dati = get_storico_completo(username)
     viaggi = dati.get('viaggi', [])
     
     if not viaggi: 
         return None
 
-    # Ora la somma è sicura perché sono tutti float!
+    # 2. Calcola i totali (Ora è sicuro perché sono tutti float!)
     totale_co2 = sum(v['co2'] for v in viaggi)
     totale_km = sum(v['km'] for v in viaggi)
     
+    # 3. Trova il mezzo preferito
     counts = {}
     for v in viaggi:
         m = v.get('mezzo', 'sconosciuto')
@@ -110,6 +123,7 @@ def genera_wrapped(username):
         "mezzo_preferito": best_mezzo
     }
 
+
 def get_classifica_risparmio():
     try:
         response = table.scan()
@@ -118,7 +132,8 @@ def get_classifica_risparmio():
         
         for d in data:
             u = d.get('username', 'anonimo')
-            val_co2 = safe_float(d.get('co2')) # Usa la conversione sicura
+            # Usiamo safe_float anche qui per evitare crash nella classifica
+            val_co2 = safe_float(d.get('co2'))
             
             if u not in user_stats:
                 user_stats[u] = 0.0
