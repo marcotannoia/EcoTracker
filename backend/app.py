@@ -14,8 +14,8 @@ app.secret_key = "chiave-segreta-super-sicura"
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False 
 app.config['SESSION_COOKIE_HTTPONLY'] = True 
-
-CORS(app, supports_credentials=True, origins=["https://ecotrack-86lj.onrender.com"]) 
+ # Sostituisci la vecchia riga CORS(app) con questa:
+CORS(app, origins=["https://dgyjenq1r43lo.cloudfront.net"], supports_credentials=True)
 
 # autenticazione
 @app.route('/api/login', methods=['POST'])
