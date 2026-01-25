@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './Wrapped.css'; 
 
 const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
+// const URL_SERVER = 'http://localhost:5000'; // Localhost per i test
+
 const MAPPA_MEZZI = {
   "piedi": "A piedi",
   "bike": "Bicicletta",
@@ -21,12 +23,15 @@ function PaginaRiepilogo() {
   const [erroreCaricamento, setErroreCaricamento] = useState('');
 
   useEffect(() => {
-    caricaDatiUtente();
+    if (nomeUtente) {
+      caricaDatiUtente();
+    }
   }, [nomeUtente]);
 
   const caricaDatiUtente = async () => {
     try {
-      const risposta = await fetch(`${URL_SERVER}/api/wrapped/${nomeUtente}`);
+      // IMPORTANTE: credentials include
+      const risposta = await fetch(`${URL_SERVER}/api/wrapped/${nomeUtente}`, { credentials: 'include' });
       const datiJson = await risposta.json();
       
       if (datiJson.ok && datiJson.dati) {
@@ -44,8 +49,8 @@ function PaginaRiepilogo() {
   const stimaRisparmioCo2 = () => {
     if (!datiRiepilogo) return "0.0";
     // Calcolo risparmio basato sul backend
-    const km = datiRiepilogo.km_totali || 0;
-    const co2Emessa = datiRiepilogo.co2_risparmiata || 0; // Nota: in storico.py questo campo contiene la somma delle emissioni
+    const km = parseFloat(datiRiepilogo.km_totali || 0);
+    const co2Emessa = parseFloat(datiRiepilogo.co2_risparmiata || 0); 
     const co2Auto = km * 0.120;
     
     const risparmio = co2Auto - co2Emessa;
@@ -81,7 +86,6 @@ function PaginaRiepilogo() {
                 <div className="stat-item">
                   <span className="stat-icon">🚀</span>
                   <div className="stat-info">
-                    {/* FIX: Uso i nomi corretti del backend */}
                     <span className="stat-value">{datiRiepilogo.viaggi_totali || 0}</span>
                     <span className="stat-label">Viaggi Totali</span>
                   </div>

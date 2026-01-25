@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import './Profilo.css';
 
-const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
+// IMPORTANTE: Se testi in locale usa localhost, se sei live usa Render.
+// Se usi Render, assicurati di aver aggiornato il backend lì!
+const URL_SERVER = 'https://ecotrack-86lj.onrender.com'; 
+// const URL_SERVER = 'http://localhost:5000'; // Scommenta questo per testare in locale
 
 function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
   
@@ -12,44 +15,47 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
     totaleCo2: 0,
     alberi: 0
   });
-
+  
+  // Aggiungiamo lo stato per la lista viaggi che mancava
+  const [listaViaggi, setListaViaggi] = useState([]);
   const naviga = useNavigate();
 
   useEffect(() => {
     if (utenteLoggato) {
-      calcolaStatistiche();
+      caricaDati();
     }
   }, [utenteLoggato]);
 
-
-  const calcolaStatistiche = async () => { 
+  const caricaDati = async () => { 
     try {
+      // Aggiunto credentials: 'include' per passare i cookie di sessione
       const risposta = await fetch(`${URL_SERVER}/api/storico`, { credentials: 'include' });
       const datiJson = await risposta.json(); 
       
-      // FIX: Il backend ritorna { ok: true, viaggi: [...] }
-      // Dobbiamo prendere .viaggi, non l'oggetto intero
-      const listaViaggi = datiJson.viaggi || [];
+      const viaggiRecuperati = datiJson.viaggi || [];
+      setListaViaggi(viaggiRecuperati); // Salviamo la lista per poterla disegnare
 
-      if (Array.isArray(listaViaggi)) {
+      if (Array.isArray(viaggiRecuperati)) {
         const CO2_AUTO_STANDARD = 0.120; // kg/km
 
-        const sommaKm = listaViaggi.reduce((totale, viaggio) => {
-          const kmViaggio = parseFloat(viaggio.km || 0);
-          return totale + kmViaggio;
+        const sommaKm = viaggiRecuperati.reduce((totale, viaggio) => {
+          return totale + parseFloat(viaggio.km || 0);
         }, 0);
 
-        const sommaCo2Risparmiata = listaViaggi.reduce((totale, viaggio) => {
+        const sommaCo2Risparmiata = viaggiRecuperati.reduce((totale, viaggio) => {
           const km = parseFloat(viaggio.km || 0);
           const co2EmessaReale = parseFloat(viaggio.co2 || 0);
+          
+          // Logica risparmio: Quanto avrei emesso in auto - quanto ho emesso davvero
           const co2SeFosseAuto = km * CO2_AUTO_STANDARD;
           let risparmioViaggio = co2SeFosseAuto - co2EmessaReale;
           if (risparmioViaggio < 0) risparmioViaggio = 0;
+          
           return totale + risparmioViaggio;
         }, 0);
 
         setStatistiche({
-          totaleViaggi: listaViaggi.length,
+          totaleViaggi: viaggiRecuperati.length,
           totaleKm: sommaKm.toFixed(1),
           totaleCo2: sommaCo2Risparmiata.toFixed(1),
           alberi: (sommaCo2Risparmiata / 20).toFixed(1) 
@@ -62,7 +68,7 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
 
   const eseguiLogout = async () => {
     try {
-      await fetch(`${URL_SERVER}/api/logout`, { method: 'POST' });
+      await fetch(`${URL_SERVER}/api/logout`, { method: 'POST', credentials: 'include' });
       setUtenteLoggato(null); 
       naviga('/login');
     } catch (errore) {
@@ -130,6 +136,35 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
                   </div>
                 </div>
               </div>
+
+              {/* QUESTA PARTE MANCAVA NEL TUO CODICE: LA LISTA DEI VIAGGI */}
+              <div className="storico-recente-section">
+                <h3 className="stats-title" style={{marginTop: '2rem'}}>Ultimi Viaggi</h3>
+                {listaViaggi.length === 0 ? (
+                  <p className="no-data-msg">Nessun viaggio registrato.</p>
+                ) : (
+                  <div className="lista-viaggi-mini">
+                    {listaViaggi.slice(0, 5).map((viaggio, index) => (
+                      <div key={index} className="viaggio-row">
+                        <span className="viaggio-icona-mini">
+                          {viaggio.mezzo === 'veicolo_elettrico' ? '⚡' : 
+                           viaggio.mezzo === 'piedi' ? '👣' : '🚗'}
+                        </span>
+                        <div className="viaggio-dettagli">
+                          <span className="viaggio-tratta">
+                             {/* Protezione contro undefined */}
+                             {viaggio.partenza?.split(',')[0]} → {viaggio.arrivo?.split(',')[0]}
+                          </span>
+                          <span className="viaggio-data">{viaggio.data?.split(' ')[0]}</span>
+                        </div>
+                        <span className="viaggio-km">{parseFloat(viaggio.km).toFixed(1)} km</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* FINE PARTE MANCANTE */}
+
             </div>
           </div>
         </div>

@@ -1,41 +1,48 @@
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix 
-from flask.json.provider import DefaultJSONProvider # Importante per il fix
-from decimal import Decimal # Importante per il fix
+from flask.json.provider import DefaultJSONProvider 
+from decimal import Decimal 
+import os
+
+# Import dei tuoi moduli
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
 import login as auth_service 
 import storico
 from alberiCO2 import alberiCO2
-import os
 
-# --- CLASSE PER GESTIRE I NUMERI DI DYNAMODB ---
+# --- 1. CLASSE PER GESTIRE I NUMERI DI DYNAMODB (IL FIX) ---
 class DynamoDBEncoder(DefaultJSONProvider):
     def default(self, obj):
         if isinstance(obj, Decimal):
-            # Converte Decimal in int (se intero) o float
+            # Se è un numero intero (es. 10.0), lo converte in int (10)
+            # Altrimenti lo converte in float (10.5)
             return int(obj) if obj % 1 == 0 else float(obj)
         return super().default(obj)
 
 app = Flask(__name__)
 
-# --- APPLICAZIONE DEL FIX JSON ---
+# --- 2. APPLICAZIONE DEL FIX JSON ---
 app.json = DynamoDBEncoder(app)
 
-# --- CONFIGURAZIONE ---
+# --- 3. CONFIGURAZIONE ---
+# ProxyFix serve a Flask per capire che è dietro a Render (https)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura")
 
+# Configurazione Cookie per il Cross-Site (Frontend su dominio diverso dal Backend)
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 
-# --- CORS APERTO ---
+# --- 4. CORS APERTO ---
+# Permette al frontend di comunicare con il backend passando le credenziali
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
-# --- ROTTE ---
+# --- 5. ROTTE API ---
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
@@ -199,4 +206,5 @@ def api_classifica():
         return jsonify({"ok": False, "classifica": []})
     
 if __name__ == '__main__':
+    # Nota: su Render, gunicorn ignorerà questo e userà app:app, ma va bene tenerlo per test locali
     app.run(host='0.0.0.0', port=5000, debug=True)

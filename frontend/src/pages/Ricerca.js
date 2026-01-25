@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import './Ricerca.css';
 
 const URL_BASE_API = 'https://ecotrack-86lj.onrender.com';
+// const URL_BASE_API = 'http://localhost:5000'; // Usa questo per testare in locale
 
 function PaginaRicerca({ user: utenteLoggato }) {
   const [listaUtenti, setListaUtenti] = useState([]);
   const [classifica, setClassifica] = useState([]); 
   const [testoRicerca, setTestoRicerca] = useState('');
-  const [inCaricamento, setInCaricamento] = useState(true);
+  // const [inCaricamento, setInCaricamento] = useState(true); // Rimosso se non usato nella UI
 
   const naviga = useNavigate();
 
@@ -18,19 +19,19 @@ function PaginaRicerca({ user: utenteLoggato }) {
 
   const caricaDati = async () => {
     try {
-      const rispUtenti = await fetch(`${URL_BASE_API}/api/utenti`);
+      // IMPORTANTE: credentials: 'include'
+      const rispUtenti = await fetch(`${URL_BASE_API}/api/utenti`, { credentials: 'include' });
       const datiUtenti = await rispUtenti.json();
       if (datiUtenti.ok) setListaUtenti(datiUtenti.utenti || []);
 
-      const rispClassifica = await fetch(`${URL_BASE_API}/api/classifica`);
+      const rispClassifica = await fetch(`${URL_BASE_API}/api/classifica`, { credentials: 'include' });
       const datiClassifica = await rispClassifica.json();
       if (datiClassifica.ok) setClassifica(datiClassifica.classifica || []);
 
     } catch (errore) {
-      console.error("Errore caricamento:", errore);
-    } finally {
-      setInCaricamento(false);
-    }
+      console.error("Errore caricamento ricerca:", errore);
+    } 
+    // finally { setInCaricamento(false); }
   };
 
   const utentiConsigliati = listaUtenti.filter(u => 
@@ -52,7 +53,6 @@ function PaginaRicerca({ user: utenteLoggato }) {
   }; 
 
   const assegnaMedaglia = (posizione) => {
-    // FIX: Emoji corrette
     if (posizione === 0) return "🥇";
     if (posizione === 1) return "🥈";
     if (posizione === 2) return "🥉";
