@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import './Profilo.css';
 
-// IMPORTANTE: Se testi in locale usa localhost, se sei live usa Render.
-// Se usi Render, assicurati di aver aggiornato il backend lì!
 const URL_SERVER = 'https://ecotrack-86lj.onrender.com'; 
-// const URL_SERVER = 'http://localhost:5000'; // Scommenta questo per testare in locale
 
 function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
   
@@ -16,24 +13,33 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
     alberi: 0
   });
   
-  // Aggiungiamo lo stato per la lista viaggi che mancava
   const [listaViaggi, setListaViaggi] = useState([]);
   const naviga = useNavigate();
 
   useEffect(() => {
-    if (utenteLoggato) {
-      caricaDati();
+    // Se non c'è l'utente nello stato di React, torniamo al login
+    if (!utenteLoggato) {
+       naviga('/login');
+       return;
     }
+    caricaDati();
   }, [utenteLoggato]);
 
   const caricaDati = async () => { 
     try {
-      // Aggiunto credentials: 'include' per passare i cookie di sessione
+      // credentials: 'include' è OBBLIGATORIO per passare il cookie di sessione
       const risposta = await fetch(`${URL_SERVER}/api/storico`, { credentials: 'include' });
-      const datiJson = await risposta.json(); 
       
+      if (risposta.status === 401) {
+          console.error("Sessione scaduta o cookie bloccato");
+          // Opzionale: logout forzato se la sessione server è morta
+          // setUtenteLoggato(null); 
+          return;
+      }
+
+      const datiJson = await risposta.json(); 
       const viaggiRecuperati = datiJson.viaggi || [];
-      setListaViaggi(viaggiRecuperati); // Salviamo la lista per poterla disegnare
+      setListaViaggi(viaggiRecuperati);
 
       if (Array.isArray(viaggiRecuperati)) {
         const CO2_AUTO_STANDARD = 0.120; // kg/km
@@ -46,7 +52,6 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
           const km = parseFloat(viaggio.km || 0);
           const co2EmessaReale = parseFloat(viaggio.co2 || 0);
           
-          // Logica risparmio: Quanto avrei emesso in auto - quanto ho emesso davvero
           const co2SeFosseAuto = km * CO2_AUTO_STANDARD;
           let risparmioViaggio = co2SeFosseAuto - co2EmessaReale;
           if (risparmioViaggio < 0) risparmioViaggio = 0;
@@ -137,7 +142,6 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
                 </div>
               </div>
 
-              {/* QUESTA PARTE MANCAVA NEL TUO CODICE: LA LISTA DEI VIAGGI */}
               <div className="storico-recente-section">
                 <h3 className="stats-title" style={{marginTop: '2rem'}}>Ultimi Viaggi</h3>
                 {listaViaggi.length === 0 ? (
@@ -152,7 +156,6 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
                         </span>
                         <div className="viaggio-dettagli">
                           <span className="viaggio-tratta">
-                             {/* Protezione contro undefined */}
                              {viaggio.partenza?.split(',')[0]} → {viaggio.arrivo?.split(',')[0]}
                           </span>
                           <span className="viaggio-data">{viaggio.data?.split(' ')[0]}</span>
@@ -163,7 +166,6 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
                   </div>
                 )}
               </div>
-              {/* FINE PARTE MANCANTE */}
 
             </div>
           </div>

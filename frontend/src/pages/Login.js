@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import './Login.css';
 
+// URL del tuo backend su Render
 const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
 
 function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
   
   const [datiInput, setDatiInput] = useState({ username: '', password: '', regione: '', email: '', codice: '' });
   
-  // Stati: Registrazione -> (Verifica) -> Login
+  // Stati per gestire Registrazione e Verifica
   const [modalitaRegistrazione, setModalitaRegistrazione] = useState(false);
-  const [inAttesaDiCodice, setInAttesaDiCodice] = useState(false); // NUOVO STATO
+  const [inAttesaDiCodice, setInAttesaDiCodice] = useState(false);
   
   const [messaggioErrore, setMessaggioErrore] = useState('');
   const [messaggioSuccesso, setMessaggioSuccesso] = useState('');
@@ -19,7 +20,6 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
     setMessaggioErrore('');
     setMessaggioSuccesso('');
 
-    // Determina quale API chiamare
     let endpoint = '/api/login';
     if (inAttesaDiCodice) endpoint = '/api/conferma';
     else if (modalitaRegistrazione) endpoint = '/api/registrati';
@@ -28,7 +28,7 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
       const risposta = await fetch(`${URL_SERVER}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        credentials: 'include', // FONDAMENTALE PER I COOKIE
         body: JSON.stringify(datiInput)
       });
       
@@ -36,16 +36,16 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
       
       if (datiRisposta.ok) {
         if (modalitaRegistrazione && !inAttesaDiCodice) {
-          // 1. Registrazione OK -> Passa alla verifica codice
+          // Registrazione andata, ora verifica
           setInAttesaDiCodice(true);
           setMessaggioSuccesso("Controlla la mail e inserisci il codice.");
         } else if (inAttesaDiCodice) {
-          // 2. Verifica OK -> Torna al Login
+          // Verifica OK, ora login
           setInAttesaDiCodice(false);
           setModalitaRegistrazione(false);
           setMessaggioSuccesso("Account verificato! Accedi pure.");
         } else {
-          // 3. Login OK
+          // Login OK
           impostaUtenteLoggato(datiRisposta);
         }
       } else {
@@ -61,7 +61,6 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
     setDatiInput(prev => ({ ...prev, [campo]: valore }));
   };
 
-  // Determina il titolo della Card
   let titoloCard = 'Accedi';
   if (inAttesaDiCodice) titoloCard = 'Verifica Email';
   else if (modalitaRegistrazione) titoloCard = 'Crea Account';
@@ -80,17 +79,15 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
             
             <form onSubmit={gestisciAuth} className="login-form-stack">
               
-              {/* CAMPO USERNAME: Sempre visibile tranne se ho già fatto login (che qui non c'è) */}
               <input 
                 className="card-input" 
                 placeholder="Username" 
                 value={datiInput.username} 
                 onChange={e => aggiornaCampo('username', e.target.value)} 
-                disabled={inAttesaDiCodice} // Blocco username in fase di verifica
+                disabled={inAttesaDiCodice} 
                 required 
               />
               
-              {/* CAMPI REGISTRAZIONE */}
               {modalitaRegistrazione && !inAttesaDiCodice && (
                 <>
                   <input 
@@ -111,7 +108,6 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                 </>
               )}
 
-              {/* CAMPO PASSWORD: Non serve in fase di verifica codice */}
               {!inAttesaDiCodice && (
                 <input 
                   className="card-input" 
@@ -123,11 +119,10 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                 />
               )}
 
-              {/* NUOVO CAMPO CODICE: Visibile solo in fase verifica */}
               {inAttesaDiCodice && (
                 <input 
                   className="card-input" 
-                  placeholder="Codice di Conferma (es. 123456)" 
+                  placeholder="Codice di Conferma" 
                   value={datiInput.codice} 
                   onChange={e => aggiornaCampo('codice', e.target.value)} 
                   required 
@@ -142,7 +137,6 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
             {messaggioErrore && <div className="login-error-box">{messaggioErrore}</div>}
             {messaggioSuccesso && <div className="login-success-box">{messaggioSuccesso}</div>}
 
-            {/* Link Toggle: Nascondi se stiamo verificando il codice */}
             {!inAttesaDiCodice && (
               <div className="login-toggle-area">
                 <p>{modalitaRegistrazione ? 'Hai già un account?' : 'Non hai un account?'}</p>
@@ -150,7 +144,6 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                   onClick={() => {
                     setModalitaRegistrazione(!modalitaRegistrazione);
                     setMessaggioErrore('');
-                    setMessaggioSuccesso('');
                   }} 
                   className="toggle-link-btn"
                 >

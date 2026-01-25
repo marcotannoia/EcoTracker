@@ -5,7 +5,7 @@ from flask.json.provider import DefaultJSONProvider
 from decimal import Decimal 
 import os
 
-# Import dei tuoi moduli
+# Import dei tuoi moduli (Assicurati che questi file esistano nella stessa cartella)
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
@@ -13,7 +13,7 @@ import login as auth_service
 import storico
 from alberiCO2 import alberiCO2
 
-# --- 1. CLASSE PER GESTIRE I NUMERI DI DYNAMODB ---
+# --- 1. CONFIGURAZIONE JSON PER DYNAMODB ---
 class DynamoDBEncoder(DefaultJSONProvider):
     def default(self, obj):
         if isinstance(obj, Decimal):
@@ -21,33 +21,51 @@ class DynamoDBEncoder(DefaultJSONProvider):
         return super().default(obj)
 
 app = Flask(__name__)
-
-# --- 2. APPLICAZIONE DEL FIX JSON ---
 app.json = DynamoDBEncoder(app)
 
-# --- 3. CONFIGURAZIONE ---
+# --- 2. CONFIGURAZIONE SICUREZZA E COOKIE ---
+# ProxyFix è necessario su Render per gestire HTTPS correttamente
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-fissa-molto-lunga")
+# Chiave segreta (su Render usa le Env Vars, qui un valore di fallback)
+app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura-e-lunga")
 
-# Configurazione Cookie per Cross-Site (CloudFront <-> Render)
-# Questi 3 parametri sono OBBLIGATORI quando frontend e backend hanno domini diversi
+# Configurazione Cookie (FONDAMENTALE PER CLOUDFRONT)
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 1 giorno
 
-# --- 4. CORS AGGIORNATO PER CLOUDFRONT ---
+# --- 3. CORS (ORIGINI AUTORIZZATE) ---
+# Sostituisci questo URL solo se cambia il tuo CloudFront
 FRONTEND_ORIGIN = "https://dgyjenq1r43lo.cloudfront.net"
 
 CORS(app, 
      resources={r"/api/*": {
          "origins": [
-             "http://localhost:3000", 
-             FRONTEND_ORIGIN
+             "http://localhost:3000",  # Per i test locali
+             FRONTEND_ORIGIN           # Il tuo CloudFront
          ]
      }}, 
-     supports_credentials=True)
+     supports_credentials=True) # Abilita l'invio dei cookie
+
+# --- 4. FIX AGGIUNTIVO PER HEADER (IL TRUCCO) ---
+@app.after_request
+def after_request(response):
+    # Forza l'invio delle credenziali anche se CORS fa i capricci
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    
+    # Se la richiesta arriva dal tuo CloudFront, confermiamo l'origine
+    origin = request.headers.get('Origin')
+    if origin == FRONTEND_ORIGIN:
+        response.headers['Access-Control-Allow-Origin'] = FRONTEND_ORIGIN
+    
+    # Assicura che il cookie abbia SameSite=None per funzionare cross-site
+    for cookie in response.headers.getlist('Set-Cookie'):
+        if 'SameSite=None' not in cookie:
+             response.headers.add('Set-Cookie', cookie + '; SameSite=None; Secure')
+             
+    return response
 
 # --- 5. ROTTE API ---
 
@@ -66,9 +84,9 @@ def api_login():
         session['username'] = user['username']
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
-        session.modified = True 
+        session.modified = True  # Importante: Forza il salvataggio
         
-        print(f"DEBUG: Login OK. Cookie generato per {session['username']}")
+        print(f"DEBUG: Login OK. Cookie impostato per {session['username']}")
         
         return jsonify({
             "ok": True, 
@@ -98,7 +116,7 @@ def api_logout():
 @app.route('/api/me', methods=['GET'])
 def api_me():
     user = session.get('username')
-    print(f"DEBUG /api/me: Utente trovato in sessione: {user}")
+    print(f"DEBUG /api/me: Utente nella sessione: {user}")
     
     if user:
         return jsonify({
