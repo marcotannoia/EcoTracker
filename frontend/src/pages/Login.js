@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './Login.css';
 
 // URL del tuo backend su Render
-const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
+const URL_SERVER = 'https://api.ecotracker.it';
 
 function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
   

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import './Profilo.css';
 
-const URL_SERVER = 'https://ecotrack-86lj.onrender.com'; 
+const URL_SERVER = 'https://api.ecotracker.it';
 
 function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
   

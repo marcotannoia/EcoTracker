@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './Wrapped.css'; 
-
-const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
+const URL_SERVER = 'https://api.ecotracker.it';
 
 const MAPPA_MEZZI = {
   "piedi": "A piedi",
