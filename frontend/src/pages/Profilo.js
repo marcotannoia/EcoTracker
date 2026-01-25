@@ -17,7 +17,6 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
   const naviga = useNavigate();
 
   useEffect(() => {
-    // Se non c'è l'utente nello stato di React, torniamo al login
     if (!utenteLoggato) {
        naviga('/login');
        return;
@@ -27,13 +26,10 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
 
   const caricaDati = async () => { 
     try {
-      // credentials: 'include' è OBBLIGATORIO per passare il cookie di sessione
       const risposta = await fetch(`${URL_SERVER}/api/storico`, { credentials: 'include' });
       
       if (risposta.status === 401) {
-          console.error("Sessione scaduta o cookie bloccato");
-          // Opzionale: logout forzato se la sessione server è morta
-          // setUtenteLoggato(null); 
+          console.error("Sessione scaduta");
           return;
       }
 
@@ -42,7 +38,7 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
       setListaViaggi(viaggiRecuperati);
 
       if (Array.isArray(viaggiRecuperati)) {
-        const CO2_AUTO_STANDARD = 0.120; // kg/km
+        const CO2_AUTO_STANDARD = 0.120;
 
         const sommaKm = viaggiRecuperati.reduce((totale, viaggio) => {
           return totale + parseFloat(viaggio.km || 0);
@@ -51,11 +47,9 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
         const sommaCo2Risparmiata = viaggiRecuperati.reduce((totale, viaggio) => {
           const km = parseFloat(viaggio.km || 0);
           const co2EmessaReale = parseFloat(viaggio.co2 || 0);
-          
           const co2SeFosseAuto = km * CO2_AUTO_STANDARD;
           let risparmioViaggio = co2SeFosseAuto - co2EmessaReale;
           if (risparmioViaggio < 0) risparmioViaggio = 0;
-          
           return totale + risparmioViaggio;
         }, 0);
 
@@ -96,6 +90,8 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
       <main className="hero-content">
         <div className="profile-card-container">
           <div className="profile-card fade-in">
+            
+            {/* SX: Profilo */}
             <div className="profile-left-col">
               <div className="profile-avatar">{ottieniIniziale()}</div>
               <div className="profile-identity">
@@ -109,64 +105,76 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
               </div>
             </div>
 
+            {/* DX: Dati */}
             <div className="profile-right-col">
               <h3 className="stats-title">Statistiche Generali</h3>
               <div className="stats-grid">
                 <div className="stat-item">
                   <span className="stat-icon">🚀</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{statistiche.totaleViaggi}</span>
-                    <span className="stat-label">Viaggi Totali</span>
-                  </div>
+                  <span className="stat-value">{statistiche.totaleViaggi}</span>
+                  <span className="stat-label">Viaggi Totali</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-icon">🗺️</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{statistiche.totaleKm}</span>
-                    <span className="stat-label">Km Percorsi</span>
-                  </div>
+                  <span className="stat-value">{statistiche.totaleKm}</span>
+                  <span className="stat-label">Km Percorsi</span>
                 </div>
                 <div className="stat-item highlight-green">
                   <span className="stat-icon">🌱</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{statistiche.totaleCo2} <small>kg</small></span>
-                    <span className="stat-label">CO2 Risparmiata</span>
-                  </div>
+                  <span className="stat-value">
+                    {statistiche.totaleCo2} <small>kg</small>
+                  </span>
+                  <span className="stat-label">CO2 Risparmiata</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-icon">🌳</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{statistiche.alberi}</span>
-                    <span className="stat-label">Alberi Equivalenti</span>
-                  </div>
+                  <span className="stat-value">{statistiche.alberi}</span>
+                  <span className="stat-label">Alberi Equivalenti</span>
                 </div>
               </div>
 
               <div className="storico-recente-section">
-                <h3 className="stats-title" style={{marginTop: '2rem'}}>Ultimi Viaggi</h3>
-                {listaViaggi.length === 0 ? (
-                  <p className="no-data-msg">Nessun viaggio registrato.</p>
-                ) : (
-                  <div className="lista-viaggi-mini">
-                    {listaViaggi.slice(0, 5).map((viaggio, index) => (
-                      <div key={index} className="viaggio-row">
-                        <span className="viaggio-icona-mini">
-                          {viaggio.mezzo === 'veicolo_elettrico' ? '⚡' : 
-                           viaggio.mezzo === 'piedi' ? '👣' : '🚗'}
-                        </span>
-                        <div className="viaggio-dettagli">
-                          <span className="viaggio-tratta">
-                             {viaggio.partenza?.split(',')[0]} → {viaggio.arrivo?.split(',')[0]}
-                          </span>
-                          <span className="viaggio-data">{viaggio.data?.split(' ')[0]}</span>
+                <div className="section-header-row">
+                    <h3 className="stats-title">Ultimi Viaggi</h3>
+                    {listaViaggi.length > 0 && (
+                        <div className="view-all-link" onClick={() => naviga('/storico')}>
+                            Vedi tutti →
                         </div>
-                        <span className="viaggio-km">{parseFloat(viaggio.km).toFixed(1)} km</span>
+                    )}
+                </div>
+
+                {listaViaggi.length === 0 ? (
+                  <p className="no-data-msg">Nessun viaggio registrato ancora.</p>
+                ) : (
+                  <div className="lista-viaggi-container">
+                    {listaViaggi.slice(0, 4).map((viaggio, index) => (
+                      <div key={index} className="mini-trip-card">
+                        <div className="mini-trip-icon">
+                          {viaggio.mezzo === 'veicolo_elettrico' ? '⚡' : 
+                           viaggio.mezzo === 'piedi' ? '👣' : 
+                           viaggio.mezzo === 'bike' ? '🚲' : 
+                           viaggio.mezzo === 'public_bus' ? '🚌' : '🚗'}
+                        </div>
+                        <div className="mini-trip-info">
+                          <div className="mini-row-top">
+                            <span className="mini-route">
+                               {viaggio.partenza?.split(',')[0]} → {viaggio.arrivo?.split(',')[0]}
+                            </span>
+                          </div>
+                          <div className="mini-row-bottom">
+                            <span className="mini-date">
+                               {viaggio.data?.split(' ')[0]}
+                            </span>
+                            <span className="mini-km-badge">
+                              {parseFloat(viaggio.km).toFixed(1)} km
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
             </div>
           </div>
         </div>

@@ -1,20 +1,17 @@
-/* --- STILE BASE (Desktop) --- */
+/* --- LAYOUT BASE (Desktop) --- */
 .profile-page {
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  padding: 0 20px;
-  padding-top: 50px;
+  padding: 50px 20px;
+  color: var(--text-main);
+  /* Aggiungiamo padding bottom extra per evitare che la dock copra il contenuto su mobile */
+  padding-bottom: 120px; 
 }
 
-.hero-header {
-  text-align: center;
-  margin-bottom: 30px; 
-  flex-shrink: 0;
-}
+.hero-header { text-align: center; margin-bottom: 30px; width: 100%; }
 
 .brand-title {
   font-family: 'Space Grotesk', sans-serif;
@@ -24,19 +21,22 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));
 }
 
-.profile-card-container {
-  width: 100%;
-  max-width: 900px; 
-  padding-bottom: 40px; 
+.brand-subtitle {
+  color: var(--text-main);
+  opacity: 0.8;
+  letter-spacing: 2px;
+  margin-top: 5px;
 }
 
+.profile-card-container { width: 100%; max-width: 900px; }
+
+/* CARD PRINCIPALE */
 .profile-card {
   background: var(--card-bg);
   border: var(--card-border);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--glass-shadow);
   border-radius: 32px;
   backdrop-filter: blur(20px);
   display: flex; 
@@ -44,197 +44,203 @@
   min-height: 450px; 
 }
 
-/* --- COLONNA SINISTRA (Profilo) --- */
+/* COLONNA SINISTRA (Profilo) */
 .profile-left-col {
   flex: 1; 
-  min-width: 300px;
-  background: rgba(255, 255, 255, 0.02);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 300px; /* Su desktop va bene, su mobile lo togliamo dopo */
+  background: rgba(125, 125, 125, 0.05); 
+  border-right: var(--card-border);
   padding: 50px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 25px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 25px;
 }
 
 .profile-avatar {
-  width: 140px;
-  height: 140px;
+  width: 140px; height: 140px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--btn-primary), #047857);
-  border: 4px solid rgba(255,255,255,0.08);
   color: #fff;
-  font-size: 3.5rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+  font-size: 3.5rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-.profile-identity {
-  text-align: center;
-}
-
+.profile-identity { text-align: center; width: 100%; }
 .profile-identity h2 {
   font-family: 'Space Grotesk', sans-serif;
   color: var(--text-main);
-  font-size: 2rem;
-  margin: 0 0 8px 0;
-  font-weight: 700;
+  font-size: 2rem; margin: 0 0 8px 0; font-weight: 700;
+  word-break: break-word; /* Evita che nomi lunghi escano fuori */
 }
 
 .region-badge {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--icon-bg);
   color: var(--btn-primary);
-  padding: 6px 16px;
-  border-radius: 100px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  padding: 6px 16px; border-radius: 100px;
+  font-size: 0.8rem; font-weight: 700;
+  border: 1px solid var(--btn-primary);
+  letter-spacing: 1px; text-transform: uppercase;
 }
 
 .logout-btn {
   margin-top: 10px;
   background: transparent;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
+  border: 2px solid var(--logout-border);
+  color: var(--logout-text);
   padding: 12px 30px;
   border-radius: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 .logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-  color: #ef4444;
+  background: var(--logout-border);
+  color: #fff;
 }
 
-/* --- COLONNA DESTRA (Statistiche Dashboard) --- */
-.profile-right-col {
-  flex: 2; 
-  padding: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+/* COLONNA DESTRA (Dati) */
+.profile-right-col { flex: 2; padding: 40px; display: flex; flex-direction: column; }
+
+.stats-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.2rem; font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 15px 0; opacity: 0.9;
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); 
-  gap: 25px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;
 }
 
-/* --- IL BOX STATISTICA (Layout Semplice Richiesto) --- */
 .stat-item {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 30px;
-  border-radius: 24px;
-  
-  /* Disposizione verticale semplice */
-  display: flex;
-  flex-direction: column; 
-  align-items: center;     /* Centra orizzontalmente */
-  justify-content: center; /* Centra verticalmente */
-  text-align: center;      
-  
-  gap: 15px; /* Spazio tra il blocco sopra e quello sotto */
-  transition: transform 0.2s;
+  background: var(--trip-card-bg);
+  border: var(--card-border);
+  padding: 25px; border-radius: 24px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  gap: 12px; transition: transform 0.2s;
 }
 
-.stat-item:hover {
-  background: rgba(255, 255, 255, 0.03);
-  transform: translateY(-5px);
-  border-color: rgba(255,255,255,0.1);
-}
+.stat-icon { font-size: 2rem; color: var(--text-main); line-height: 1; }
 
-/* PARTE SUPERIORE: Icona + Titolo */
-.stat-icon {
-  font-size: 1.8rem;
-  margin-bottom: 5px; /* Piccolo spazio tra icona e titolo */
+.stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2.2rem; font-weight: 800;
+  color: var(--text-main); line-height: 1;
+}
+.stat-value small {
+  font-size: 1rem; margin-left: 2px;
+  color: var(--text-secondary);
 }
 
 .stat-label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  text-transform: uppercase; 
-  letter-spacing: 1px;
-  font-weight: 700;
-  opacity: 0.9;
+  font-size: 0.8rem; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
 }
 
-/* PARTE INFERIORE: Numero + Unità */
-.stat-value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 2.8rem; /* Numero Grande */
-  font-weight: 800;
+/* ULTIMI VIAGGI */
+.storico-recente-section { display: flex; flex-direction: column; gap: 15px; margin-top: 1rem; }
+.section-header-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; }
+
+.view-all-link {
+  font-size: 0.85rem; color: var(--btn-primary); font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--btn-primary);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.mini-trip-card {
+  background: var(--trip-card-bg);
+  border: var(--card-border);
+  border-radius: 16px; padding: 12px 15px;
+  display: flex; align-items: center; gap: 15px;
+  transition: all 0.2s ease;
+}
+
+.mini-trip-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--icon-bg);
+  color: var(--btn-primary);
+  display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+}
+
+.mini-trip-info { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.mini-row-top { display: flex; align-items: center; }
+
+.mini-route {
+  font-weight: 700; font-size: 0.95rem;
+  color: var(--text-main); 
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Evita testo che sborda */
+}
+
+.mini-row-bottom { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.mini-date { font-size: 0.75rem; color: var(--text-secondary); }
+
+.mini-km-badge {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem;
   color: var(--text-main);
-  line-height: 1;
-  
-  /* Per tenere numero e unità vicini */
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 5px;
+  background: var(--badge-bg);
+  padding: 2px 8px; border-radius: 8px; white-space: nowrap;
 }
 
-/* Stile per l'unità di misura (es. "kg", "km") */
-.stat-value span, .stat-value small {
-  font-size: 1.2rem; /* Unità più piccola del numero */
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
+.no-data-msg {
+  text-align: center; color: var(--text-secondary);
+  font-style: italic; margin-top: 10px; padding: 15px;
+  background: var(--trip-card-bg); border-radius: 12px;
 }
 
-/* --- MOBILE COMPATTO --- */
+/* -------------------------------------------------------- */
+/* --- MOBILE RESPONSIVE (IL FIX VERO) --- */
+/* -------------------------------------------------------- */
 @media (max-width: 768px) {
-  .profile-page { padding-top: 20px; }
+  .profile-page {
+    padding: 20px 10px; /* Riduciamo i margini laterali */
+    padding-bottom: 140px; /* Spazio per la dock */
+  }
 
-  .brand-title { font-size: 2.5rem; margin-bottom: 15px; }
+  .brand-title { font-size: 2.2rem; }
   
   .profile-card { 
     flex-direction: column; 
-    border-radius: 28px;
+    border-radius: 24px;
+    width: 100%; /* Forza larghezza piena */
   }
   
-  /* Avatar Mobile */
+  /* FIX COLONNA SINISTRA: Rimuoviamo min-width */
   .profile-left-col { 
+    width: 100%;
+    min-width: unset; /* IMPORTANTE: Rimuove il blocco da 300px */
     border-right: none; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
-    padding: 30px 20px; 
+    border-bottom: var(--card-border); 
+    padding: 30px 15px; 
     gap: 15px;
-    min-width: auto;
   }
-  .profile-avatar { width: 90px; height: 90px; font-size: 2.2rem; border-width: 3px; }
-  .profile-identity h2 { font-size: 1.6rem; }
   
-  /* Griglia Statistiche Mobile */
+  .profile-avatar { width: 90px; height: 90px; font-size: 2rem; }
+  .profile-identity h2 { font-size: 1.5rem; }
+  
+  /* FIX COLONNA DESTRA */
   .profile-right-col {
-    padding: 25px 15px;
+    padding: 20px 15px; /* Meno padding interno */
   }
   
+  /* FIX GRIGLIA STATISTICHE */
   .stats-grid { 
-    grid-template-columns: 1fr 1fr; 
-    gap: 15px;
+    gap: 10px; /* Meno spazio tra i box */
   }
 
   .stat-item {
-    padding: 20px 10px;
+    padding: 15px 10px; /* Box più compatti */
+  }
+  
+  .stat-value { font-size: 1.6rem; }
+  .stat-icon { font-size: 1.5rem; }
+  .stat-label { font-size: 0.7rem; }
+
+  /* FIX LISTA VIAGGI MOBILE */
+  .mini-trip-card {
+    padding: 10px;
     gap: 10px;
   }
-
-  .stat-icon { font-size: 1.5rem; }
-  .stat-label { font-size: 0.75rem; }
-  
-  .stat-value { 
-    font-size: 1.8rem; 
-  }
-  .stat-value span, .stat-value small {
-    font-size: 0.9rem;
-  }
+  .mini-trip-icon { width: 35px; height: 35px; font-size: 1rem; }
+  .mini-route { font-size: 0.85rem; }
 }

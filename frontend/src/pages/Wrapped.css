@@ -11,6 +11,7 @@
   padding: 0 20px;
   padding-top: 50px;
   padding-bottom: 40px;
+  color: var(--text-main);
 }
 
 .wrapped-card-container {
@@ -34,7 +35,7 @@
   flex: 1;
   min-width: 280px;
   background: rgba(255, 255, 255, 0.03);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--card-border);
   padding: 40px 30px;
   display: flex;
   flex-direction: column;
@@ -97,7 +98,74 @@
   justify-content: center;
 }
 
-.capitalize { text-transform: capitalize; }
+/* GRIGLIA STATISTICHE */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* CARD STATISTICA - LAYOUT VERTICALE */
+.stat-item {
+  background: var(--trip-card-bg); /* Usa variabile per tema */
+  border: var(--card-border);
+  padding: 25px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px; /* Spaziatura uniforme */
+  transition: transform 0.2s;
+}
+
+.stat-item:hover {
+  transform: translateY(-5px);
+  background: var(--trip-card-hover);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Elementi interni */
+.stat-icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.stat-value small {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-left: 2px;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* Troncamento testo lungo (es. mezzo preferito) */
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
 
 .wrapped-loading, .wrapped-error {
   color: var(--text-main);
@@ -110,7 +178,7 @@
 @media (max-width: 768px) {
   .wrapped-page {
     padding-top: 30px;
-    padding-bottom: 140px !important; /* Spazio per la Dock */
+    padding-bottom: 140px !important;
   }
 
   .wrapped-card { 
@@ -127,5 +195,16 @@
   
   .wrapped-right-col {
     padding: 25px 20px;
+  }
+  
+  /* Adattamento statistiche su mobile */
+  .stats-grid {
+    gap: 15px;
+  }
+  .stat-item {
+    padding: 15px 10px;
+  }
+  .stat-value {
+    font-size: 1.8rem;
   }
 }

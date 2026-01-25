@@ -5,8 +5,6 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  /* MODIFICA: Tolto overflow: hidden per permettere lo scroll se necessario, 
-     ma gestito meglio in app-shell */
   overflow: hidden; 
 }
 
@@ -14,6 +12,7 @@ html, body {
 
 :root { --transition-speed: 0.3s; }
 
+/* --- DARK THEME (Tuo Originale + Nuove Variabili) --- */
 .dark-theme {
   --text-main: #e8f5e9;                  
   --text-secondary: #bbf7d0;             
@@ -25,40 +24,51 @@ html, body {
   --btn-primary: #22c55e;
   --btn-text: #000000;
   --btn-border: none;
+  
+  /* NUOVE VARIABILI AGGIUNTE PER FIXARE IL PROFILO */
+  --trip-card-bg: rgba(255, 255, 255, 0.03);
+  --trip-card-hover: rgba(255, 255, 255, 0.08);
+  --logout-border: rgba(239, 68, 68, 0.5);
+  --logout-text: #fca5a5;
+  --glass-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
+/* --- LIGHT THEME (Tuo Originale + Nuove Variabili) --- */
 .light-theme {
   --text-main: #022c22; 
   --text-secondary: #064e3b;
   --card-bg: rgba(236, 253, 245, 0.85); 
-  --card-border: 2px solid #000000;
+  --card-border: 2px solid #000000; /* Bordo nero stile "neobrutalism" */
   --input-bg: rgba(255, 255, 255, 0.9);
   --input-text: #000000;
   --input-border: 2px solid #000000;
   --btn-primary: #10b981;
   --btn-text: #ffffff;
   --btn-border: 2px solid #000000;
+
+  /* NUOVE VARIABILI AGGIUNTE PER FIXARE IL PROFILO */
+  --trip-card-bg: rgba(255, 255, 255, 0.6); /* Più visibile sul chiaro */
+  --trip-card-hover: rgba(255, 255, 255, 0.9);
+  --logout-border: #ef4444; /* Rosso solido per visibilità */
+  --logout-text: #b91c1c;   /* Rosso scuro per il testo */
+  --glass-shadow: 0 20px 40px -10px rgba(6, 78, 59, 0.15);
 }
 
+/* --- LAYOUT TUO ORIGINALE (INVARIATO) --- */
 .app-shell {
   width: 100%; 
-  height: 100vh; /* Occupa tutto lo schermo */
+  height: 100vh; 
   font-family: 'Space Grotesk', sans-serif;
   background-color: transparent; 
   color: var(--text-main);
-  
-  /* MODIFICA FONDAMENTALE PER LO SCROLL: */
-  overflow-y: auto; /* Abilita lo scroll verticale */
-  overflow-x: hidden; /* Blocca quello orizzontale */
+  overflow-y: auto; 
+  overflow-x: hidden; 
   position: relative;
-  
-  /* Per scroll fluido su mobile */
   -webkit-overflow-scrolling: touch;
 }
 
 .page-body {
   width: 100%;
-  /* MODIFICA: min-height invece di height fissa permette di allungarsi */
   min-height: 100%; 
   display: flex;
   flex-direction: column;
@@ -86,39 +96,29 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- FIX DEFINITIVO MOBILE: Spazio e Scroll --- */
 @media (max-width: 768px) {
-  /* Forza il corpo pagina a non sbordare lateralmente */
   .app-shell, .page-body {
     width: 100% !important;
     max-width: 100vw !important;
   }
-
-  /* Aggiunge cuscinetto in basso SOLO su mobile per non coprire i tasti con la Dock */
   .page-body {
     padding-bottom: 120px !important; 
     padding-left: 10px !important;
     padding-right: 10px !important;
   }
-
-  /* Rimpicciolisce tutti i testi giganti su mobile */
   h1 { font-size: 1.8rem !important; }
   h2 { font-size: 1.5rem !important; }
   p, input, button { font-size: 0.95rem !important; }
 }
 
-
-/* --- CODICE MAGICO PER NASCONDERE LA DOCK --- */
-/* Se nella pagina è aperta la scheda risultati, la dock sparisce */
 body:has(.results-overlay) .dock-container,
 body:has(.results-overlay) .dock {
   display: none !important;
 }
 
-/* Rimuoviamo anche lo spazio vuoto in basso, tanto la dock non c'è */
 body:has(.results-overlay) .page-body,
 body:has(.results-overlay) .app-shell,
 body:has(.results-overlay) main {
   padding-bottom: 0 !important;
-  overflow: hidden !important; /* Blocca lo scroll della pagina sotto quando c'è la mappa */
+  overflow: hidden !important; 
 }

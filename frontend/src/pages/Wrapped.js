@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './Wrapped.css'; 
 
 const URL_SERVER = 'https://ecotrack-86lj.onrender.com';
-// const URL_SERVER = 'http://localhost:5000'; // Localhost per i test
 
 const MAPPA_MEZZI = {
   "piedi": "A piedi",
@@ -30,7 +29,6 @@ function PaginaRiepilogo() {
 
   const caricaDatiUtente = async () => {
     try {
-      // IMPORTANTE: credentials include
       const risposta = await fetch(`${URL_SERVER}/api/wrapped/${nomeUtente}`, { credentials: 'include' });
       const datiJson = await risposta.json();
       
@@ -48,7 +46,6 @@ function PaginaRiepilogo() {
 
   const stimaRisparmioCo2 = () => {
     if (!datiRiepilogo) return "0.0";
-    // Calcolo risparmio basato sul backend
     const km = parseFloat(datiRiepilogo.km_totali || 0);
     const co2Emessa = parseFloat(datiRiepilogo.co2_risparmiata || 0); 
     const co2Auto = km * 0.120;
@@ -83,38 +80,33 @@ function PaginaRiepilogo() {
               <h3 className="stats-title">Riepilogo Attività</h3>
               <div className="stats-grid">
                 
+                {/* STRUTTURA CARD SEMPLIFICATA: ICONA - VALORE - LABEL */}
                 <div className="stat-item">
                   <span className="stat-icon">🚀</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{datiRiepilogo.viaggi_totali || 0}</span>
-                    <span className="stat-label">Viaggi Totali</span>
-                  </div>
+                  <span className="stat-value">{datiRiepilogo.viaggi_totali || 0}</span>
+                  <span className="stat-label">Viaggi Totali</span>
                 </div>
 
                 <div className="stat-item">
                   <span className="stat-icon">🗺️</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{datiRiepilogo.km_totali || 0}</span>
-                    <span className="stat-label">Km Percorsi</span>
-                  </div>
+                  <span className="stat-value">{datiRiepilogo.km_totali || 0}</span>
+                  <span className="stat-label">Km Percorsi</span>
                 </div>
 
                 <div className="stat-item highlight-green">
                   <span className="stat-icon">🌱</span>
-                  <div className="stat-info">
-                    <span className="stat-value">{stimaRisparmioCo2()} <small>kg</small></span>
-                    <span className="stat-label">CO₂ Risparmiata</span>
-                  </div>
+                  <span className="stat-value">
+                    {stimaRisparmioCo2()} <small>kg</small>
+                  </span>
+                  <span className="stat-label">CO₂ Risparmiata</span>
                 </div>
 
                 <div className="stat-item">
                   <span className="stat-icon">❤️</span>
-                  <div className="stat-info">
-                    <span className="stat-value text-truncate">
-                      {MAPPA_MEZZI[datiRiepilogo.mezzo_preferito] || "Nessuno"}
-                    </span>
-                    <span className="stat-label">Mezzo Preferito</span>
-                  </div>
+                  <span className="stat-value text-truncate">
+                    {MAPPA_MEZZI[datiRiepilogo.mezzo_preferito] || "Nessuno"}
+                  </span>
+                  <span className="stat-label">Mezzo Preferito</span>
                 </div>
 
               </div>

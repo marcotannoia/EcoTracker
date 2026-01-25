@@ -29,23 +29,26 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 # --- 3. CONFIGURAZIONE COOKIE E SESSIONE ---
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura-e-lunga")
 
-# Queste impostazioni sono CRITICHE per far funzionare i cookie tra domini diversi
+# Impostazioni vitali per i cookie cross-domain (Backend Render <-> Frontend Custom Domain)
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
 
-# --- 4. CORS (ORIGINI AUTORIZZATE) ---
-FRONTEND_ORIGIN = "https://dgyjenq1r43lo.cloudfront.net"
+# --- 4. CORS (ORIGINI AUTORIZZATE - FIX QUI) ---
 
-# Rimuoviamo il blocco manuale e usiamo solo questo.
-# supports_credentials=True è ciò che permette al cookie di passare.
+# Lista di TUTTI i domini che possono accedere al backend
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",                # Test Locale
+    "https://www.ecotracker.it",            # Tuo dominio (con www)
+    "https://ecotracker.it",                # Tuo dominio (senza www)
+    "https://dgyjenq1r43lo.cloudfront.net"  # Vecchio Cloudfront (opzionale)
+]
+
+# Configurazione CORS che usa la lista sopra
 CORS(app, 
      resources={r"/api/*": {
-         "origins": [
-             "http://localhost:3000", 
-             FRONTEND_ORIGIN
-         ]
+         "origins": ALLOWED_ORIGINS  # <--- QUI ERA L'ERRORE, ORA USA LA LISTA GIUSTA
      }}, 
      supports_credentials=True)
 
@@ -99,7 +102,6 @@ def api_logout():
 @app.route('/api/me', methods=['GET'])
 def api_me():
     user = session.get('username')
-    # print(f"DEBUG /api/me: Utente nella sessione: {user}")
     
     if user:
         return jsonify({

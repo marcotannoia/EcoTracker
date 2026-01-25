@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+
+/* --- PAGINE --- */
 import PaginaAccesso from './pages/Login'; 
 import PaginaRicerca from './pages/Ricerca'; 
 import PaginaNuovoViaggio from './pages/NuovoViaggio'; 
 import PaginaProfilo from './pages/Profilo'; 
 import PaginaRiepilogo from './pages/Wrapped'; 
+import PaginaStoricoCompleto from './pages/PaginaStoricoCompleto'; // <--- NUOVO IMPORT
+
+/* --- COMPONENTI UI --- */
 import Iridescence from './components/Iridescence'; 
 import Dock from './components/Dock'; 
 import './App.css'; 
 
-const INDIRIZZO_API = 'https://ecotrack-86lj.onrender.com'; // come sempre sto nel baackedn
+const INDIRIZZO_API = 'https://ecotrack-86lj.onrender.com'; 
 
 function ContenutoApp() {
   const [utenteLoggato, setUtenteLoggato] = useState(null);
@@ -30,8 +35,7 @@ function ContenutoApp() {
     document.body.classList.add(`${tema}-mode`); 
   }, [tema]);
 
-
-  const verificaSessione = async () => { // vedo se stava una sessione attiva
+  const verificaSessione = async () => { 
     try {
       const risp = await fetch(`${INDIRIZZO_API}/api/me`, { credentials: 'include' });
       const dati = await risp.json();
@@ -48,10 +52,10 @@ function ContenutoApp() {
   const eseguiLogout = async () => {
     await fetch(`${INDIRIZZO_API}/api/logout`, { method: 'POST' });
     setUtenteLoggato(null);
-    naviga('/login'); // come sempre se faccio logout torno al login
+    naviga('/login'); 
   };
 
-  const elementiMenu = [ // frontend
+  const elementiMenu = [ 
     {
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>,
       label: 'Home',
@@ -94,9 +98,15 @@ function ContenutoApp() {
       <main className="page-body" style={{ position: 'relative', zIndex: 1, paddingBottom: '100px' }}>
         <Routes>
           <Route path="/" element={<PaginaNuovoViaggio user={utenteLoggato} theme={tema} toggleTheme={alternaTema} />} />
+          
           <Route path="/login" element={utenteLoggato ? <Navigate to="/" /> : <PaginaAccesso setUser={setUtenteLoggato} />} />
+          
           <Route path="/cerca" element={utenteLoggato ? <PaginaRicerca user={utenteLoggato} /> : <Navigate to="/login" />} />
+          
           <Route path="/profilo" element={utenteLoggato ? <PaginaProfilo user={utenteLoggato} setUser={setUtenteLoggato} /> : <Navigate to="/login" />} />
+          
+          {/* --- NUOVA ROTTA AGGIUNTA --- */}
+          <Route path="/storico" element={utenteLoggato ? <PaginaStoricoCompleto /> : <Navigate to="/login" />} />
           
           <Route path="/wrapped/:username" element={utenteLoggato ? <PaginaRiepilogo /> : <Navigate to="/login" />} />
           
