@@ -5,7 +5,7 @@ from flask.json.provider import DefaultJSONProvider
 from decimal import Decimal 
 import os
 
-# Import dei tuoi moduli (Assicurati che questi file esistano nella stessa cartella)
+# Import dei tuoi moduli
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
@@ -23,49 +23,31 @@ class DynamoDBEncoder(DefaultJSONProvider):
 app = Flask(__name__)
 app.json = DynamoDBEncoder(app)
 
-# --- 2. CONFIGURAZIONE SICUREZZA E COOKIE ---
-# ProxyFix è necessario su Render per gestire HTTPS correttamente
+# --- 2. CONFIGURAZIONE PROXY (Per Render) ---
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Chiave segreta (su Render usa le Env Vars, qui un valore di fallback)
+# --- 3. CONFIGURAZIONE COOKIE E SESSIONE ---
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura-e-lunga")
 
-# Configurazione Cookie (FONDAMENTALE PER CLOUDFRONT)
+# Queste impostazioni sono CRITICHE per far funzionare i cookie tra domini diversi
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 1 giorno
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
 
-# --- 3. CORS (ORIGINI AUTORIZZATE) ---
-# Sostituisci questo URL solo se cambia il tuo CloudFront
+# --- 4. CORS (ORIGINI AUTORIZZATE) ---
 FRONTEND_ORIGIN = "https://dgyjenq1r43lo.cloudfront.net"
 
+# Rimuoviamo il blocco manuale e usiamo solo questo.
+# supports_credentials=True è ciò che permette al cookie di passare.
 CORS(app, 
      resources={r"/api/*": {
          "origins": [
-             "http://localhost:3000",  # Per i test locali
-             FRONTEND_ORIGIN           # Il tuo CloudFront
+             "http://localhost:3000", 
+             FRONTEND_ORIGIN
          ]
      }}, 
-     supports_credentials=True) # Abilita l'invio dei cookie
-
-# --- 4. FIX AGGIUNTIVO PER HEADER (IL TRUCCO) ---
-@app.after_request
-def after_request(response):
-    # Forza l'invio delle credenziali anche se CORS fa i capricci
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    
-    # Se la richiesta arriva dal tuo CloudFront, confermiamo l'origine
-    origin = request.headers.get('Origin')
-    if origin == FRONTEND_ORIGIN:
-        response.headers['Access-Control-Allow-Origin'] = FRONTEND_ORIGIN
-    
-    # Assicura che il cookie abbia SameSite=None per funzionare cross-site
-    for cookie in response.headers.getlist('Set-Cookie'):
-        if 'SameSite=None' not in cookie:
-             response.headers.add('Set-Cookie', cookie + '; SameSite=None; Secure')
-             
-    return response
+     supports_credentials=True)
 
 # --- 5. ROTTE API ---
 
@@ -84,7 +66,7 @@ def api_login():
         session['username'] = user['username']
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
-        session.modified = True  # Importante: Forza il salvataggio
+        session.modified = True 
         
         print(f"DEBUG: Login OK. Cookie impostato per {session['username']}")
         
@@ -95,6 +77,7 @@ def api_login():
             "regione": session['regione']
         })
     
+    print("DEBUG: Credenziali errate")
     return jsonify({"ok": False, "errore": "Credenziali errate"}), 401
 
 @app.route('/api/registrati', methods=['POST'])
@@ -116,7 +99,7 @@ def api_logout():
 @app.route('/api/me', methods=['GET'])
 def api_me():
     user = session.get('username')
-    print(f"DEBUG /api/me: Utente nella sessione: {user}")
+    # print(f"DEBUG /api/me: Utente nella sessione: {user}")
     
     if user:
         return jsonify({
