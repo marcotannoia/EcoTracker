@@ -13,12 +13,10 @@ import login as auth_service
 import storico
 from alberiCO2 import alberiCO2
 
-# --- 1. CLASSE PER GESTIRE I NUMERI DI DYNAMODB (IL FIX) ---
+# --- 1. CLASSE PER GESTIRE I NUMERI DI DYNAMODB ---
 class DynamoDBEncoder(DefaultJSONProvider):
     def default(self, obj):
         if isinstance(obj, Decimal):
-            # Se è un numero intero (es. 10.0), lo converte in int (10)
-            # Altrimenti lo converte in float (10.5)
             return int(obj) if obj % 1 == 0 else float(obj)
         return super().default(obj)
 
@@ -28,19 +26,28 @@ app = Flask(__name__)
 app.json = DynamoDBEncoder(app)
 
 # --- 3. CONFIGURAZIONE ---
-# ProxyFix serve a Flask per capire che è dietro a Render (https)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura")
+app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-fissa-molto-lunga")
 
-# Configurazione Cookie per il Cross-Site (Frontend su dominio diverso dal Backend)
+# Configurazione Cookie per Cross-Site (CloudFront <-> Render)
+# Questi 3 parametri sono OBBLIGATORI quando frontend e backend hanno domini diversi
 app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
 
-# --- 4. CORS APERTO ---
-# Permette al frontend di comunicare con il backend passando le credenziali
-CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+# --- 4. CORS AGGIORNATO PER CLOUDFRONT ---
+FRONTEND_ORIGIN = "https://dgyjenq1r43lo.cloudfront.net"
+
+CORS(app, 
+     resources={r"/api/*": {
+         "origins": [
+             "http://localhost:3000", 
+             FRONTEND_ORIGIN
+         ]
+     }}, 
+     supports_credentials=True)
 
 # --- 5. ROTTE API ---
 
@@ -50,6 +57,8 @@ def api_login():
     username_input = data.get('username', '').lower().strip()
     password_input = data.get('password')
     
+    print(f"DEBUG: Login richiesto da {username_input}")
+
     user = auth_service.login_user(username_input, password_input)
     
     if user:
@@ -57,6 +66,10 @@ def api_login():
         session['username'] = user['username']
         session['ruolo'] = user.get('role', 'utente')
         session['regione'] = user.get('regione', '') 
+        session.modified = True 
+        
+        print(f"DEBUG: Login OK. Cookie generato per {session['username']}")
+        
         return jsonify({
             "ok": True, 
             "username": user['username'], 
@@ -85,6 +98,8 @@ def api_logout():
 @app.route('/api/me', methods=['GET'])
 def api_me():
     user = session.get('username')
+    print(f"DEBUG /api/me: Utente trovato in sessione: {user}")
+    
     if user:
         return jsonify({
             "ok": True, 
@@ -159,7 +174,11 @@ def navigazione():
 @app.route('/api/storico', methods=['GET'])
 def api_storico():
     user = session.get('username')
-    if not user: return jsonify({"ok": False, "errore": "Login richiesto"}), 401
+    print(f"DEBUG /api/storico: Utente -> {user}")
+    
+    if not user: 
+        return jsonify({"ok": False, "errore": "Devi effettuare il login"}), 401
+    
     return jsonify(storico.get_storico_completo(user))
 
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
@@ -206,5 +225,4 @@ def api_classifica():
         return jsonify({"ok": False, "classifica": []})
     
 if __name__ == '__main__':
-    # Nota: su Render, gunicorn ignorerà questo e userà app:app, ma va bene tenerlo per test locali
     app.run(host='0.0.0.0', port=5000, debug=True)
