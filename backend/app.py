@@ -131,7 +131,7 @@ def vehicles():
 def navigazione():
     data = request.get_json() or {} 
     start, end = data.get('start'), data.get('end')
-    mezzo = data.get('mezzo', 'car')
+    mezzo = data.get('mezzo', 'car') # Qui arriva 'public_bus'
 
     if not start or not end:
         return jsonify({"ok": False, "errore": "Indirizzi mancanti"}), 400
@@ -142,10 +142,18 @@ def navigazione():
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
 
+    # --- INIZIO MODIFICA: TRADUZIONE NOMI ---
+    # Creiamo una variabile specifica per il calcolo della CO2
+    mezzo_per_calcolo = mezzo
+    if mezzo == 'public_bus':
+        mezzo_per_calcolo = 'bus'
+    # ----------------------------------------
+
     if mezzo in ['bike', 'piedi', 'veicolo_elettrico']:
         emissioni = 0
     else:
-        emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo)
+        # USIAMO LA VARIABILE TRADOTTA QUI SOTTO:
+        emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo_per_calcolo)
 
     current_username = session.get('username') 
     
@@ -155,7 +163,7 @@ def navigazione():
                 username=current_username,
                 co2=emissioni,
                 km=distanza_km,
-                mezzo=mezzo,
+                mezzo=mezzo, # Nel DB salviamo il nome originale 'public_bus' per le icone
                 start=route.get('start_address'), 
                 end=route.get('end_address')      
             )
