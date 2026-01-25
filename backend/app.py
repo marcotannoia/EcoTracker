@@ -34,6 +34,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
+app.config['SESSION_COOKIE_DOMAIN'] = '.ecotracker.it'
 
 # --- 4. CORS (ORIGINI AUTORIZZATE - FIX QUI) ---
 
