@@ -25,20 +25,18 @@ try:
 except Exception as e:
     print(f"❌ ERRORE CRITICO DB: {str(e)}")
 
-# --- IL PULITORE (LA PARTE FONDAMENTALE) ---
+# --- IL PULITORE ---
 def safe_float(valore):
     """
-    Trasforma QUALSIASI cosa in un numero float.
-    Se nel DB c'è "10 kg", "10,5", o None -> diventa numero pulito.
+    Trasforma QUALSIASI cosa (Decimal, stringhe sporche, None) in float.
+    Essenziale per evitare crash nel frontend.
     """
     try:
         if valore is None: return 0.0
-        # Se è già numero
         if isinstance(valore, (int, float, Decimal)):
             return float(valore)
-        # Se è stringa sporca
-        s = str(valore).replace(',', '.') # virgola in punto
-        # Tieni solo numeri e punto
+        # Pulizia stringhe (es. "10,5 km")
+        s = str(valore).replace(',', '.') 
         s = re.sub(r'[^\d.]', '', s)
         if not s: return 0.0
         return float(s)
@@ -52,12 +50,11 @@ def registra_viaggio(username, co2, km, mezzo, start, end):
         user_clean = str(username).lower().strip()
         timestamp_now = str(int(time.time())) 
         
-        # Salviamo come Decimal standard
         item = {
             'username': user_clean,           
             'timestamp': timestamp_now,       
             'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'co2': Decimal(str(co2)),
+            'co2': Decimal(str(co2)), # Salva come Decimal per precisione DB
             'km': Decimal(str(km)),
             'mezzo': str(mezzo),
             'partenza': str(start),
@@ -79,7 +76,7 @@ def get_storico_completo(username):
         storico_pulito = []
         for v in items:
             viaggio = v.copy()
-            # PULIZIA AUTOMATICA DEI DATI
+            # CONVERSIONE FORZATA A FLOAT
             viaggio['co2'] = safe_float(viaggio.get('co2'))
             viaggio['km'] = safe_float(viaggio.get('km'))
             storico_pulito.append(viaggio)
@@ -93,13 +90,11 @@ def get_storico_completo(username):
 
 def genera_wrapped(username):
     try:
-        # Prende i dati già puliti
         dati = get_storico_completo(username)
         viaggi = dati.get('viaggi', [])
         
         if not viaggi: return None
 
-        # Calcoli sicuri (ora sono tutti numeri float)
         totale_co2 = sum(v['co2'] for v in viaggi)
         totale_km = sum(v['km'] for v in viaggi)
         
@@ -127,7 +122,7 @@ def get_classifica_risparmio():
         
         for d in data:
             u = d.get('username', 'anonimo')
-            val_co2 = safe_float(d.get('co2')) # Usa il pulitore
+            val_co2 = safe_float(d.get('co2')) 
             
             if u not in user_stats: user_stats[u] = 0.0
             user_stats[u] += val_co2

@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix 
+from flask.json.provider import DefaultJSONProvider # Importante per il fix
+from decimal import Decimal # Importante per il fix
 import maps
 import calcoloCO2
 from mezzo import opzione_trasporto
@@ -9,7 +11,18 @@ import storico
 from alberiCO2 import alberiCO2
 import os
 
+# --- CLASSE PER GESTIRE I NUMERI DI DYNAMODB ---
+class DynamoDBEncoder(DefaultJSONProvider):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            # Converte Decimal in int (se intero) o float
+            return int(obj) if obj % 1 == 0 else float(obj)
+        return super().default(obj)
+
 app = Flask(__name__)
+
+# --- APPLICAZIONE DEL FIX JSON ---
+app.json = DynamoDBEncoder(app)
 
 # --- CONFIGURAZIONE ---
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -19,8 +32,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 
-# --- CORS APERTO (Fix per vedere i dati) ---
-# Permette richieste da ovunque per evitare blocchi in fase di sviluppo/test
+# --- CORS APERTO ---
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 # --- ROTTE ---
@@ -141,7 +153,6 @@ def navigazione():
 def api_storico():
     user = session.get('username')
     if not user: return jsonify({"ok": False, "errore": "Login richiesto"}), 401
-    # Ritorna { "ok": true, "viaggi": [...] }
     return jsonify(storico.get_storico_completo(user))
 
 @app.route('/api/wrapped', defaults={'username': None}, methods=['GET'])
