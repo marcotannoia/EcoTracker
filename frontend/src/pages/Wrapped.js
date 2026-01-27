@@ -97,7 +97,7 @@ function PaginaRiepilogo() {
                   <span className="stat-value">
                     {stimaRisparmioCo2()} <small>kg</small>
                   </span>
-                  <span className="stat-label">CO₂ Risparmiata Mensile</span>
+                  <span className="stat-label">CO₂ Mensile Risparmiata </span>
                 </div>
 
                 <div className="stat-item">

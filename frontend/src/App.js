@@ -14,7 +14,7 @@ import Iridescence from './components/Iridescence';
 import Dock from './components/Dock'; 
 import './App.css'; 
 
-const INDIRIZZO_API = 'https://ecotrack-86lj.onrender.com'; 
+const INDIRIZZO_API = 'https://api.ecotracker.it'; 
 
 function ContenutoApp() {
   const [utenteLoggato, setUtenteLoggato] = useState(null);

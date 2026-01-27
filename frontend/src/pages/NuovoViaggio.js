@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './NuovoViaggio.css'; 
 
-const INDIRIZZO_SERVER = 'https://ecotrack-86lj.onrender.com';
+const INDIRIZZO_SERVER = 'https://api.ecotracker.it';
 
 // Grafiche per i mezzi di trasporto
 const GraficaMezzi = {

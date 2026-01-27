@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Ricerca.css';
 
-const URL_BASE_API = 'https://ecotrack-86lj.onrender.com';
+const URL_BASE_API = 'https://api.ecotracker.it';
 // const URL_BASE_API = 'http://localhost:5000'; // Usa questo per testare in locale
 
 function PaginaRicerca({ user: utenteLoggato }) {
