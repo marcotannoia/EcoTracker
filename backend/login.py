@@ -13,7 +13,7 @@ USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
 CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
 CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
 
-# Inizializzazione client con gestione errore se mancano le chiavi
+# Inizializzazione sicura
 try:
     client = boto3.client('cognito-idp', region_name=REGION_NAME)
 except Exception as e:
@@ -30,23 +30,24 @@ def get_secret_hash(username):
     ).digest()
     return base64.b64encode(dig).decode()
 
-# --- IL TRADUTTORE (La parte nuova che ti serve) ---
+# --- IL TRADUTTORE (QUESTO RISOLVE IL TUO PROBLEMA) ---
 def traduci_errore_aws(error):
-    # Recupera il codice tecnico dell'errore
+    # Se non è un errore AWS standard, ritorna il testo originale
     if not hasattr(error, 'response'): return str(error)
     
     code = error.response['Error']['Code']
     msg = error.response['Error']['Message']
     
-    # Traduzione casi specifici
+    # --- TRADUZIONE SPECIFICA PER PASSWORD ---
     if code == 'InvalidParameterException':
-        if "password" in msg.lower():
-            return "Password troppo debole: usa almeno 8 caratteri, numeri e simboli." # <--- QUELLO CHE SERVE A TE
+        # Questo intercetta "Password did not conform with policy..."
+        if "password" in msg.lower(): 
+            return "Password debole: usa almeno 8 caratteri, un numero e un simbolo."
         if "email" in msg.lower():
             return "Formato email non valido."
             
     elif code == 'UsernameExistsException':
-        return "Questo username è già in uso. Scegline un altro."
+        return "Username già in uso. Scegline un altro."
         
     elif code == 'UserNotFoundException':
         return "Utente non trovato."
@@ -55,21 +56,21 @@ def traduci_errore_aws(error):
         return "Password errata o account non confermato."
         
     elif code == 'CodeMismatchException':
-        return "Codice di verifica errato."
+        return "Codice errato."
         
     elif code == 'ExpiredCodeException':
-        return "Il codice è scaduto. Richiedine uno nuovo."
-        
+        return "Codice scaduto. Richiedine uno nuovo."
+    
     elif code == 'LimitExceededException':
         return "Troppi tentativi. Riprova più tardi."
         
-    # Fallback se è un errore strano
+    # Se è un errore che non conosciamo, lasciamo l'originale ma pulito
     return f"Errore: {msg}"
 
-# --- FUNZIONI DI AUTH (Aggiornate per usare il traduttore) ---
+# --- FUNZIONI DI AUTH ---
 
 def register_user(username, password, regione, email):
-    if not client: return False, "Errore server: Credenziali AWS mancanti."
+    if not client: return False, "Errore server: Credenziali mancanti."
     try:
         secret_hash = get_secret_hash(username)
         client.sign_up(
@@ -84,7 +85,7 @@ def register_user(username, password, regione, email):
         )
         return True, "Codice inviato alla mail"
     except ClientError as e:
-        # QUI USIAMO IL TRADUTTORE INVECE DI PASSARE L'INGLESE
+        # QUI avviene la magia: traduciamo l'errore inglese in italiano
         return False, traduci_errore_aws(e)
     except Exception as e:
         return False, str(e)
