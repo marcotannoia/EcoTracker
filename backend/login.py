@@ -30,17 +30,29 @@ def get_secret_hash(username):
     ).digest()
     return base64.b64encode(dig).decode()
 
-# --- IL TRADUTTORE (QUESTO RISOLVE IL TUO PROBLEMA) ---
+# --- FUNZIONE NUOVA: Controlla se la mail esiste già ---
+def controlla_email_esistente(email):
+    if not client or not USER_POOL_ID: return False
+    try:
+        # Chiediamo a Cognito: dammi la lista di utenti che hanno questa email
+        response = client.list_users(
+            UserPoolId=USER_POOL_ID,
+            Filter=f'email = "{email}"'
+        )
+        # Se la lista non è vuota, vuol dire che l'email esiste già
+        return len(response['Users']) > 0
+    except Exception as e:
+        print(f"Errore controllo email: {e}")
+        return False
+
+# --- IL TRADUTTORE ---
 def traduci_errore_aws(error):
-    # Se non è un errore AWS standard, ritorna il testo originale
     if not hasattr(error, 'response'): return str(error)
     
     code = error.response['Error']['Code']
     msg = error.response['Error']['Message']
     
-    # --- TRADUZIONE SPECIFICA PER PASSWORD ---
     if code == 'InvalidParameterException':
-        # Questo intercetta "Password did not conform with policy..."
         if "password" in msg.lower(): 
             return "Password debole: usa almeno 8 caratteri, un numero e un simbolo."
         if "email" in msg.lower():
@@ -64,13 +76,17 @@ def traduci_errore_aws(error):
     elif code == 'LimitExceededException':
         return "Troppi tentativi. Riprova più tardi."
         
-    # Se è un errore che non conosciamo, lasciamo l'originale ma pulito
     return f"Errore: {msg}"
 
 # --- FUNZIONI DI AUTH ---
 
 def register_user(username, password, regione, email):
-    if not client: return False, "Errore server: Credenziali mancanti."
+    if not client: return False, "Errore server: Credenziali AWS mancanti."
+    
+    # 1. PRIMA DI TUTTO: Controlliamo se la mail è già presa
+    if controlla_email_esistente(email):
+        return False, "Questa email è già associata a un altro account."
+
     try:
         secret_hash = get_secret_hash(username)
         client.sign_up(
@@ -85,7 +101,6 @@ def register_user(username, password, regione, email):
         )
         return True, "Codice inviato alla mail"
     except ClientError as e:
-        # QUI avviene la magia: traduciamo l'errore inglese in italiano
         return False, traduci_errore_aws(e)
     except Exception as e:
         return False, str(e)
