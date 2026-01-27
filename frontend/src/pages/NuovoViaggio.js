@@ -53,20 +53,9 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
 
       if (datiNavigazione.ok) {
         
-        // --- BLOCCO DIAGNOSTICA (DEBUG) ---
-        // Controlliamo se il server ha ricevuto il cookie ed è riuscito a vedere chi siamo
-        console.log("Stato Login Backend:", datiNavigazione.is_logged);
-
-        if (datiNavigazione.is_logged === false) {
-           // Se entri qui, il browser ha bloccato il cookie!
-           alert("⚠️ ATTENZIONE: Il backend NON ti vede loggato! Il viaggio è stato calcolato ma NON salvato nel Database. (Problema Cookie Terze Parti)");
-        } else {
-           // Se entri qui, è tutto perfetto
-           console.log("✅ SUCCESSO: Login riconosciuto, viaggio salvato.");
-        }
-        // ----------------------------------
-
-        setRisultatoCalcolo(datiNavigazione); // mostro i risultati
+        // --- MODIFICA EFFETTUATA: RIMOSSO BLOCCO ALERT ---
+        // Ora mostriamo semplicemente i risultati, che l'utente sia loggato o meno.
+        setRisultatoCalcolo(datiNavigazione); 
         
         const valoreCO2 = parseFloat(datiNavigazione.emissioni_co2); 
         
@@ -155,10 +144,10 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
             
             <div className="res-left">
                <div className="res-header-mini">
-                  <span>TRATTA CALCOLATA</span>
-                  <h3>
-                    {risultatoCalcolo.start_address} <span className="arrow-green">➔</span> {risultatoCalcolo.end_address}
-                  </h3>
+                 <span>TRATTA CALCOLATA</span>
+                 <h3>
+                   {risultatoCalcolo.start_address} <span className="arrow-green">➔</span> {risultatoCalcolo.end_address}
+                 </h3>
                </div>
                
                {risultatoCalcolo.map_url && (

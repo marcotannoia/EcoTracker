@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import './Login.css';
 
-// URL del tuo backend su Render
 const URL_SERVER = 'https://api.ecotracker.it';
 
 function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
   
   const [datiInput, setDatiInput] = useState({ username: '', password: '', regione: '', email: '', codice: '' });
   
-  // Stati per gestire Registrazione e Verifica
+  // Stati
   const [modalitaRegistrazione, setModalitaRegistrazione] = useState(false);
-  const [inAttesaDiCodice, setInAttesaDiCodice] = useState(false);
+  const [inAttesaDiCodice, setInAttesaDiCodice] = useState(false); 
   
   const [messaggioErrore, setMessaggioErrore] = useState('');
   const [messaggioSuccesso, setMessaggioSuccesso] = useState('');
-  const [staCaricando, setStaCaricando] = useState(false); // Stato per loading spinner (opzionale)
+  const [staCaricando, setStaCaricando] = useState(false);
 
   const gestisciAuth = async (e) => {
     e.preventDefault();
@@ -23,56 +22,53 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
     setStaCaricando(true);
 
     let endpoint = '/api/login';
-    if (inAttesaDiCodice) endpoint = '/api/conferma';
-    else if (modalitaRegistrazione) endpoint = '/api/registrati';
+    if (modalitaRegistrazione) endpoint = '/api/registrati';
 
     try {
       const risposta = await fetch(`${URL_SERVER}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // FONDAMENTALE PER I COOKIE
+        credentials: 'include',
         body: JSON.stringify(datiInput)
       });
       
       const datiRisposta = await risposta.json();
       
       if (datiRisposta.ok) {
-        if (modalitaRegistrazione && !inAttesaDiCodice) {
-          // Registrazione andata, ora verifica
+        // --- MODIFICA QUI ---
+        // Se la registrazione è completa (bypass mail), torniamo al login
+        if (datiRisposta.messaggio === "REGISTRAZIONE_COMPLETA") {
+            setModalitaRegistrazione(false); 
+            setMessaggioSuccesso("Account creato! Ora puoi accedere.");
+            setDatiInput(prev => ({ ...prev, password: '' })); 
+        } 
+        else if (modalitaRegistrazione && !inAttesaDiCodice) {
+          // Questo blocco non dovrebbe più scattare col nuovo backend, 
+          // ma lo lasciamo per sicurezza.
           setInAttesaDiCodice(true);
-          setMessaggioSuccesso("Codice inviato! Controlla la mail (anche Spam).");
-        } else if (inAttesaDiCodice) {
-          // Verifica OK, ora login
-          setInAttesaDiCodice(false);
-          setModalitaRegistrazione(false);
-          setMessaggioSuccesso("Account verificato! Ora effettua il login.");
-          // Pulisci campi sensibili
-          setDatiInput(prev => ({ ...prev, password: '', codice: '' }));
-        } else {
-          // Login OK
+        } 
+        else {
+          // Login effettuato con successo
           impostaUtenteLoggato(datiRisposta);
         }
       } else {
-        // Qui mostriamo l'errore specifico che arriva dal backend Python
-        setMessaggioErrore(datiRisposta.errore || datiRisposta.messaggio || "Si è verificato un errore.");
+        setMessaggioErrore(datiRisposta.errore || "Si è verificato un errore.");
       }
     } catch (err) {
       console.error(err);
-      setMessaggioErrore("Impossibile connettersi al server. Controlla la tua connessione.");
+      setMessaggioErrore("Impossibile connettersi al server.");
     } finally {
       setStaCaricando(false);
     }
   };
 
   const aggiornaCampo = (campo, valore) => {
-    // Quando l'utente scrive, togliamo l'errore vecchio per pulizia visiva
     if (messaggioErrore) setMessaggioErrore('');
     setDatiInput(prev => ({ ...prev, [campo]: valore }));
   };
 
   let titoloCard = 'Accedi';
-  if (inAttesaDiCodice) titoloCard = 'Verifica Email';
-  else if (modalitaRegistrazione) titoloCard = 'Crea Account';
+  if (modalitaRegistrazione) titoloCard = 'Crea Account';
 
   return (
     <div className="login-page">
@@ -93,11 +89,10 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                 placeholder="Username" 
                 value={datiInput.username} 
                 onChange={e => aggiornaCampo('username', e.target.value)} 
-                disabled={inAttesaDiCodice} 
                 required 
               />
               
-              {modalitaRegistrazione && !inAttesaDiCodice && (
+              {modalitaRegistrazione && (
                 <>
                   <input 
                     className="card-input" 
@@ -117,59 +112,41 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                 </>
               )}
 
-              {!inAttesaDiCodice && (
-                <input 
-                  className="card-input" 
-                  type="password" 
-                  placeholder="Password" 
-                  value={datiInput.password} 
-                  onChange={e => aggiornaCampo('password', e.target.value)} 
-                  required 
-                />
-              )}
+              <input 
+                className="card-input" 
+                type="password" 
+                placeholder="Password" 
+                value={datiInput.password} 
+                onChange={e => aggiornaCampo('password', e.target.value)} 
+                required 
+              />
 
-              {inAttesaDiCodice && (
-                <input 
-                  className="card-input" 
-                  placeholder="Codice di Conferma" 
-                  value={datiInput.codice} 
-                  onChange={e => aggiornaCampo('codice', e.target.value)} 
-                  required 
-                />
-              )}
-
-              {/* MESSAGGI DI ERRORE/SUCCESSO (Sopra il bottone) */}
+              {/* MESSAGGI (Già posizionati correttamente sopra il bottone) */}
               {messaggioErrore && (
-                <div className="login-error-box">
-                   ⚠️ {messaggioErrore}
-                </div>
+                <div className="login-error-box">⚠️ {messaggioErrore}</div>
               )}
               {messaggioSuccesso && (
-                <div className="login-success-box">
-                   ✅ {messaggioSuccesso}
-                </div>
+                <div className="login-success-box">✅ {messaggioSuccesso}</div>
               )}
 
               <button className="cta-search-btn" disabled={staCaricando}>
-                {staCaricando ? 'Caricamento...' : (inAttesaDiCodice ? 'Conferma Codice' : (modalitaRegistrazione ? 'Registrati' : 'Accedi'))}
+                {staCaricando ? 'Attendi...' : (modalitaRegistrazione ? 'Registrati' : 'Accedi')}
               </button>
             </form>
 
-            {!inAttesaDiCodice && (
-              <div className="login-toggle-area">
-                <p>{modalitaRegistrazione ? 'Hai già un account?' : 'Non hai un account?'}</p>
-                <button 
-                  onClick={() => {
-                    setModalitaRegistrazione(!modalitaRegistrazione);
-                    setMessaggioErrore('');
-                    setMessaggioSuccesso('');
-                  }} 
-                  className="toggle-link-btn"
-                >
-                  {modalitaRegistrazione ? 'Vai al Login' : 'Registrati ora'}
-                </button>
-              </div>
-            )}
+            <div className="login-toggle-area">
+              <p>{modalitaRegistrazione ? 'Hai già un account?' : 'Non hai un account?'}</p>
+              <button 
+                onClick={() => {
+                  setModalitaRegistrazione(!modalitaRegistrazione);
+                  setMessaggioErrore('');
+                  setMessaggioSuccesso('');
+                }} 
+                className="toggle-link-btn"
+              >
+                {modalitaRegistrazione ? 'Vai al Login' : 'Registrati ora'}
+              </button>
+            </div>
 
           </section>
         </div>
