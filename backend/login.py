@@ -13,9 +13,15 @@ USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
 CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
 CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
 
-client = boto3.client('cognito-idp', region_name=REGION_NAME)
+# Inizializzazione client con gestione errore se mancano le chiavi
+try:
+    client = boto3.client('cognito-idp', region_name=REGION_NAME)
+except Exception as e:
+    print(f"ERRORE BOTO3: {e}")
+    client = None
 
 def get_secret_hash(username):
+    if not CLIENT_SECRET or not CLIENT_ID: return None
     msg = username + CLIENT_ID
     dig = hmac.new(
         str(CLIENT_SECRET).encode('utf-8'), 
@@ -24,33 +30,46 @@ def get_secret_hash(username):
     ).digest()
     return base64.b64encode(dig).decode()
 
-# --- NUOVA FUNZIONE PER TRADURRE GLI ERRORI IN ITALIANO ---
+# --- IL TRADUTTORE (La parte nuova che ti serve) ---
 def traduci_errore_aws(error):
+    # Recupera il codice tecnico dell'errore
+    if not hasattr(error, 'response'): return str(error)
+    
     code = error.response['Error']['Code']
     msg = error.response['Error']['Message']
     
-    if code == 'NotAuthorizedException':
-        return "Password errata o account non confermato."
-    elif code == 'UserNotFoundException':
-        return "Utente non trovato. Controlla lo username."
+    # Traduzione casi specifici
+    if code == 'InvalidParameterException':
+        if "password" in msg.lower():
+            return "Password troppo debole: usa almeno 8 caratteri, numeri e simboli." # <--- QUELLO CHE SERVE A TE
+        if "email" in msg.lower():
+            return "Formato email non valido."
+            
     elif code == 'UsernameExistsException':
         return "Questo username è già in uso. Scegline un altro."
+        
+    elif code == 'UserNotFoundException':
+        return "Utente non trovato."
+        
+    elif code == 'NotAuthorizedException':
+        return "Password errata o account non confermato."
+        
     elif code == 'CodeMismatchException':
-        return "Codice di verifica errato. Riprova."
+        return "Codice di verifica errato."
+        
     elif code == 'ExpiredCodeException':
         return "Il codice è scaduto. Richiedine uno nuovo."
+        
     elif code == 'LimitExceededException':
-        return "Troppi tentativi falliti. Riprova più tardi."
-    elif code == 'InvalidParameterException':
-        # Spesso capita se la password è troppo corta o l'email è scritta male
-        if "password" in msg.lower():
-            return "Password troppo debole (usa almeno 8 caratteri, numeri e simboli)."
-        return "Formato email o username non valido."
-    else:
-        # Fallback per errori sconosciuti
-        return f"Errore: {msg}"
+        return "Troppi tentativi. Riprova più tardi."
+        
+    # Fallback se è un errore strano
+    return f"Errore: {msg}"
+
+# --- FUNZIONI DI AUTH (Aggiornate per usare il traduttore) ---
 
 def register_user(username, password, regione, email):
+    if not client: return False, "Errore server: Credenziali AWS mancanti."
     try:
         secret_hash = get_secret_hash(username)
         client.sign_up(
@@ -65,13 +84,13 @@ def register_user(username, password, regione, email):
         )
         return True, "Codice inviato alla mail"
     except ClientError as e:
-        # Usiamo la traduzione qui
+        # QUI USIAMO IL TRADUTTORE INVECE DI PASSARE L'INGLESE
         return False, traduci_errore_aws(e)
+    except Exception as e:
+        return False, str(e)
 
 def verify_user(username, code):
-    """
-    Verifica il codice ricevuto via email
-    """
+    if not client: return False, "Errore server."
     try:
         secret_hash = get_secret_hash(username)
         client.confirm_sign_up(
@@ -80,11 +99,14 @@ def verify_user(username, code):
             Username=username,
             ConfirmationCode=code
         )
-        return True, "Account verificato con successo!"
+        return True, "Account verificato!"
     except ClientError as e:
         return False, traduci_errore_aws(e)
+    except Exception as e:
+        return False, str(e)
 
 def login_user(username, password):
+    if not client: return None
     try:
         secret_hash = get_secret_hash(username)
         resp = client.initiate_auth(
@@ -105,16 +127,13 @@ def login_user(username, password):
                 regione = attr['Value']
 
         return {"username": username, "regione": regione, "role": "utente"}
-    except ClientError as e:
-        print(f"Login error: {e}")
-        # Qui ritorniamo None, ma potremmo gestire l'errore meglio nel router Flask chiamante
-        # Tuttavia, per mantenere la struttura attuale, stampiamo l'errore
-        # Nel tuo app.py dovresti catturare questo e usare traduci_errore_aws se possibile, 
-        # oppure login_user dovrebbe ritornare (None, errore).
-        # Per ora lascio che ritorni None come prima, ma gestiamo la logica nel Login API (vedi nota sotto)
+    except ClientError:
+        return None
+    except Exception:
         return None
 
 def get_users_list():
+    if not client: return []
     try:
         response = client.list_users(
             UserPoolId=USER_POOL_ID,
