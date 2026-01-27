@@ -14,11 +14,13 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
   
   const [messaggioErrore, setMessaggioErrore] = useState('');
   const [messaggioSuccesso, setMessaggioSuccesso] = useState('');
+  const [staCaricando, setStaCaricando] = useState(false); // Stato per loading spinner (opzionale)
 
   const gestisciAuth = async (e) => {
     e.preventDefault();
     setMessaggioErrore('');
     setMessaggioSuccesso('');
+    setStaCaricando(true);
 
     let endpoint = '/api/login';
     if (inAttesaDiCodice) endpoint = '/api/conferma';
@@ -38,26 +40,33 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
         if (modalitaRegistrazione && !inAttesaDiCodice) {
           // Registrazione andata, ora verifica
           setInAttesaDiCodice(true);
-          setMessaggioSuccesso("Controlla la mail e inserisci il codice.");
+          setMessaggioSuccesso("Codice inviato! Controlla la mail (anche Spam).");
         } else if (inAttesaDiCodice) {
           // Verifica OK, ora login
           setInAttesaDiCodice(false);
           setModalitaRegistrazione(false);
-          setMessaggioSuccesso("Account verificato! Accedi pure.");
+          setMessaggioSuccesso("Account verificato! Ora effettua il login.");
+          // Pulisci campi sensibili
+          setDatiInput(prev => ({ ...prev, password: '', codice: '' }));
         } else {
           // Login OK
           impostaUtenteLoggato(datiRisposta);
         }
       } else {
-        setMessaggioErrore(datiRisposta.errore || datiRisposta.messaggio || "Errore generico.");
+        // Qui mostriamo l'errore specifico che arriva dal backend Python
+        setMessaggioErrore(datiRisposta.errore || datiRisposta.messaggio || "Si è verificato un errore.");
       }
     } catch (err) {
       console.error(err);
-      setMessaggioErrore("Impossibile connettersi al server.");
+      setMessaggioErrore("Impossibile connettersi al server. Controlla la tua connessione.");
+    } finally {
+      setStaCaricando(false);
     }
   };
 
   const aggiornaCampo = (campo, valore) => {
+    // Quando l'utente scrive, togliamo l'errore vecchio per pulizia visiva
+    if (messaggioErrore) setMessaggioErrore('');
     setDatiInput(prev => ({ ...prev, [campo]: valore }));
   };
 
@@ -129,13 +138,22 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                 />
               )}
 
-              <button className="cta-search-btn">
-                {inAttesaDiCodice ? 'Conferma Codice' : (modalitaRegistrazione ? 'Registrati' : 'Accedi')}
+              {/* MESSAGGI DI ERRORE/SUCCESSO (Sopra il bottone) */}
+              {messaggioErrore && (
+                <div className="login-error-box">
+                   ⚠️ {messaggioErrore}
+                </div>
+              )}
+              {messaggioSuccesso && (
+                <div className="login-success-box">
+                   ✅ {messaggioSuccesso}
+                </div>
+              )}
+
+              <button className="cta-search-btn" disabled={staCaricando}>
+                {staCaricando ? 'Caricamento...' : (inAttesaDiCodice ? 'Conferma Codice' : (modalitaRegistrazione ? 'Registrati' : 'Accedi'))}
               </button>
             </form>
-
-            {messaggioErrore && <div className="login-error-box">{messaggioErrore}</div>}
-            {messaggioSuccesso && <div className="login-success-box">{messaggioSuccesso}</div>}
 
             {!inAttesaDiCodice && (
               <div className="login-toggle-area">
@@ -144,6 +162,7 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
                   onClick={() => {
                     setModalitaRegistrazione(!modalitaRegistrazione);
                     setMessaggioErrore('');
+                    setMessaggioSuccesso('');
                   }} 
                   className="toggle-link-btn"
                 >

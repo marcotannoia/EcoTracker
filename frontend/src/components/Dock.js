@@ -1,4 +1,3 @@
-// TUTTO PRESO DA REACT
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'motion/react';
 import { Children, cloneElement, useEffect, useMemo, useRef, useState } from 'react';
 import './Dock.css';
@@ -75,17 +74,17 @@ export default function Dock({
   items,
   className = '',
   spring = { mass: 0.1, stiffness: 150, damping: 12 },
-  magnification = 90, 
-  distance = 150,     
-  panelHeight = 70,   
-  dockHeight = 260,   
-  baseItemSize = 65   
+  // --- VALORI RIDOTTI PER PC ---
+  magnification = 70, // Era 90
+  distance = 100,     // Era 150 (ridotto raggio interazione)
+  panelHeight = 58,   // Era 70 (adattato al padding)
+  dockHeight = 200,   // Era 260
+  baseItemSize = 50   // Era 65
+  // -----------------------------
 }) {
   const mouseX = useMotionValue(Infinity);
   const isHovered = useMotionValue(0);
 
-
-  
   return (
     <motion.div className="dock-outer">
       <motion.div
@@ -99,7 +98,6 @@ export default function Dock({
         }}
         className={`dock-panel ${className}`}
         
- 
         style={{ height: 'auto', minHeight: panelHeight }}
         
         role="toolbar"

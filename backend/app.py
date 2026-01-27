@@ -34,9 +34,10 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True      
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
+# FONDAMENTALE PER IOS E SAFARI:
 app.config['SESSION_COOKIE_DOMAIN'] = '.ecotracker.it'
 
-# --- 4. CORS (ORIGINI AUTORIZZATE - FIX QUI) ---
+# --- 4. CORS (ORIGINI AUTORIZZATE) ---
 
 # Lista di TUTTI i domini che possono accedere al backend
 ALLOWED_ORIGINS = [
@@ -46,10 +47,10 @@ ALLOWED_ORIGINS = [
     "https://dgyjenq1r43lo.cloudfront.net"  # Vecchio Cloudfront (opzionale)
 ]
 
-# Configurazione CORS che usa la lista sopra
+# Configurazione CORS
 CORS(app, 
      resources={r"/api/*": {
-         "origins": ALLOWED_ORIGINS  # <--- QUI ERA L'ERRORE, ORA USA LA LISTA GIUSTA
+         "origins": ALLOWED_ORIGINS
      }}, 
      supports_credentials=True)
 
@@ -82,18 +83,41 @@ def api_login():
         })
     
     print("DEBUG: Credenziali errate")
-    return jsonify({"ok": False, "errore": "Credenziali errate"}), 401
+    return jsonify({"ok": False, "errore": "Credenziali errate o account non verificato."}), 401
 
 @app.route('/api/registrati', methods=['POST'])
 def api_registrati():
     data = request.get_json() or {}
     username = data.get('username', '').lower().strip()
-    return jsonify(auth_service.register_user(username, data.get('password'), data.get('regione'), data.get('email')))
+    
+    # MODIFICA IMPORTANTE: Scompattiamo la risposta di login.py
+    success, message = auth_service.register_user(
+        username, 
+        data.get('password'), 
+        data.get('regione'), 
+        data.get('email')
+    )
+    
+    if success:
+        return jsonify({"ok": True, "messaggio": message})
+    else:
+        # Passiamo l'errore specifico (tradotto in italiano) al frontend
+        return jsonify({"ok": False, "errore": message}), 400
 
 @app.route('/api/conferma', methods=['POST'])
 def api_conferma():
     data = request.get_json() or {}
-    return jsonify(auth_service.verify_user(data.get('username', '').lower().strip(), data.get('codice')))
+    
+    # MODIFICA IMPORTANTE: Scompattiamo la risposta
+    success, message = auth_service.verify_user(
+        data.get('username', '').lower().strip(), 
+        data.get('codice')
+    )
+    
+    if success:
+        return jsonify({"ok": True, "messaggio": message})
+    else:
+        return jsonify({"ok": False, "errore": message}), 400
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
@@ -142,17 +166,14 @@ def navigazione():
 
     distanza_km = route.get('distanza_valore', 0) / 1000.0
 
-    # --- INIZIO MODIFICA: TRADUZIONE NOMI ---
-    # Creiamo una variabile specifica per il calcolo della CO2
+    # Gestione compatibilità nomi (public_bus -> bus)
     mezzo_per_calcolo = mezzo
     if mezzo == 'public_bus':
         mezzo_per_calcolo = 'bus'
-    # ----------------------------------------
 
     if mezzo in ['bike', 'piedi', 'veicolo_elettrico']:
         emissioni = 0
     else:
-        # USIAMO LA VARIABILE TRADOTTA QUI SOTTO:
         emissioni = calcoloCO2.calcoloCO2(distanza_km, mezzo_per_calcolo)
 
     current_username = session.get('username') 
@@ -163,7 +184,7 @@ def navigazione():
                 username=current_username,
                 co2=emissioni,
                 km=distanza_km,
-                mezzo=mezzo, # Nel DB salviamo il nome originale 'public_bus' per le icone
+                mezzo=mezzo, 
                 start=route.get('start_address'), 
                 end=route.get('end_address')      
             )

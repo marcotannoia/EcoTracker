@@ -24,6 +24,32 @@ def get_secret_hash(username):
     ).digest()
     return base64.b64encode(dig).decode()
 
+# --- NUOVA FUNZIONE PER TRADURRE GLI ERRORI IN ITALIANO ---
+def traduci_errore_aws(error):
+    code = error.response['Error']['Code']
+    msg = error.response['Error']['Message']
+    
+    if code == 'NotAuthorizedException':
+        return "Password errata o account non confermato."
+    elif code == 'UserNotFoundException':
+        return "Utente non trovato. Controlla lo username."
+    elif code == 'UsernameExistsException':
+        return "Questo username è già in uso. Scegline un altro."
+    elif code == 'CodeMismatchException':
+        return "Codice di verifica errato. Riprova."
+    elif code == 'ExpiredCodeException':
+        return "Il codice è scaduto. Richiedine uno nuovo."
+    elif code == 'LimitExceededException':
+        return "Troppi tentativi falliti. Riprova più tardi."
+    elif code == 'InvalidParameterException':
+        # Spesso capita se la password è troppo corta o l'email è scritta male
+        if "password" in msg.lower():
+            return "Password troppo debole (usa almeno 8 caratteri, numeri e simboli)."
+        return "Formato email o username non valido."
+    else:
+        # Fallback per errori sconosciuti
+        return f"Errore: {msg}"
+
 def register_user(username, password, regione, email):
     try:
         secret_hash = get_secret_hash(username)
@@ -39,7 +65,8 @@ def register_user(username, password, regione, email):
         )
         return True, "Codice inviato alla mail"
     except ClientError as e:
-        return False, e.response['Error']['Message']
+        # Usiamo la traduzione qui
+        return False, traduci_errore_aws(e)
 
 def verify_user(username, code):
     """
@@ -55,7 +82,7 @@ def verify_user(username, code):
         )
         return True, "Account verificato con successo!"
     except ClientError as e:
-        return False, e.response['Error']['Message']
+        return False, traduci_errore_aws(e)
 
 def login_user(username, password):
     try:
@@ -80,6 +107,11 @@ def login_user(username, password):
         return {"username": username, "regione": regione, "role": "utente"}
     except ClientError as e:
         print(f"Login error: {e}")
+        # Qui ritorniamo None, ma potremmo gestire l'errore meglio nel router Flask chiamante
+        # Tuttavia, per mantenere la struttura attuale, stampiamo l'errore
+        # Nel tuo app.py dovresti catturare questo e usare traduci_errore_aws se possibile, 
+        # oppure login_user dovrebbe ritornare (None, errore).
+        # Per ora lascio che ritorni None come prima, ma gestiamo la logica nel Login API (vedi nota sotto)
         return None
 
 def get_users_list():

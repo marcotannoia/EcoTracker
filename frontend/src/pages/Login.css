@@ -43,7 +43,6 @@
   margin-top: 10px;
 }
 
-
 .hero-content {
   width: 100%;
   display: flex;
@@ -77,7 +76,6 @@
   text-align: center;
   margin-bottom: 5px;
 }
-
 
 .login-form-stack {
   display: flex;
@@ -116,7 +114,7 @@
   cursor: pointer;
   box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25);
   transition: all 0.2s;
-  margin-top: 10px; 
+  /* margin-top rimosso perché gestito dai messaggi errore */
 }
 
 .cta-search-btn:hover {
@@ -124,29 +122,35 @@
   filter: brightness(1.05);
 }
 
-
+/* --- MODIFICHE BOX ERRORE/SUCCESSO --- */
 .login-error-box {
-  padding: 12px;
+  padding: 8px 12px; /* Ridotto il padding */
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.4);
   color: #fecaca;
   border-radius: 12px;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* Font più piccolo */
+  margin-top: 5px;    /* Spazio sopra */
+  margin-bottom: 10px; /* Spazio sotto prima del bottone */
+  width: 100%;
 }
 
 .login-success-box {
-  padding: 12px;
+  padding: 8px 12px; /* Ridotto il padding */
   background: rgba(16, 185, 129, 0.15); 
   border: 1px solid rgba(16, 185, 129, 0.4); 
   color: #d1fae5; 
   border-radius: 12px;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.85rem; /* Font più piccolo */
   font-weight: 500;
   animation: fadeIn 0.3s ease;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  width: 100%;
 }
-
+/* ------------------------------------- */
 
 .login-toggle-area {
   display: flex;
@@ -162,7 +166,6 @@
 .login-toggle-area p { margin: 0; }
 
 .toggle-link-btn {
-
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -200,9 +203,9 @@
   color: #047857; 
 }
 .light-mode .login-error-box {
-  background: rgba(239, 68, 68, 0.2); /* Sfondo rosso leggero */
-  border-color: #dc2626;              /* Bordo rosso definito */
-  color: #7f1d1d;                     /* Testo ROSSO SCURO per leggibilità */
+  background: rgba(239, 68, 68, 0.2); 
+  border-color: #dc2626;              
+  color: #7f1d1d;                     
 }
 
 @media (max-width: 600px) {
@@ -223,23 +226,21 @@
 /* --- Ottimizzazione Mobile (Login/Registrazione) --- */
 @media (max-width: 768px) {
   
-  /* 1. Dai respiro alla pagina intera */
   .login-page {
-    padding: 20px 15px; /* Spazio dai bordi dello schermo */
+    padding: 20px 15px; 
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Centra verticalmente */
-    min-height: 100vh; /* Occupa tutto lo schermo */
+    justify-content: center; 
+    min-height: 100vh; 
   }
 
-  /* 2. Riduci l'intestazione gigante */
   .hero-header {
-    margin-bottom: 30px; /* Stacca l'intestazione dal form */
+    margin-bottom: 30px; 
     text-align: center;
   }
 
   .brand-title {
-    font-size: 2.5rem; /* Titolo più piccolo (era probabilmente enorme) */
+    font-size: 2.5rem; 
     margin-bottom: 10px;
   }
 
@@ -248,37 +249,34 @@
     opacity: 0.9;
   }
 
-  /* 3. La Scheda Bianca/Scura centrale */
   .main-search-card {
-    padding: 25px 20px !important; /* Meno spazio interno */
+    padding: 25px 20px !important; 
     width: 100%;
-    max-width: 100%; /* Evita che esca dallo schermo */
-    box-sizing: border-box; /* Calcola bene i bordi */
-    backdrop-filter: blur(10px); /* Migliora la leggibilità su sfondi colorati */
+    max-width: 100%; 
+    box-sizing: border-box; 
+    backdrop-filter: blur(10px); 
   }
 
-  /* 4. I Campi di Input (Evita che si tocchino) */
   .login-form-stack {
     display: flex;
     flex-direction: column;
-    gap: 15px !important; /* FORZA lo spazio tra gli input */
+    gap: 15px !important; 
   }
 
   .card-input {
-    font-size: 16px; /* Importante: evita lo zoom automatico su iPhone */
-    padding: 14px;   /* Più facile da cliccare col dito */
-    margin-bottom: 0 !important; /* Gestiamo lo spazio col gap sopra */
+    font-size: 16px; 
+    padding: 14px;   
+    margin-bottom: 0 !important; 
   }
 
-  /* 5. Pulsanti e Link */
   .cta-search-btn {
-    margin-top: 10px;
+    margin-top: 5px; /* Ridotto leggermente */
     padding: 15px;
     font-size: 1.1rem;
   }
 
   .login-toggle-area {
-    margin-top: 25px; /* Stacca la scritta "Non hai un account?" */
-    padding-bottom: 80px; /* SPAZIO EXTRA PER NON FINIRE SOTTO LA DOCK */
+    margin-top: 25px; 
+    padding-bottom: 80px; 
   }
 }
