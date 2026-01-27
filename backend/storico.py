@@ -27,15 +27,10 @@ except Exception as e:
 
 # --- IL PULITORE ---
 def safe_float(valore):
-    """
-    Trasforma QUALSIASI cosa (Decimal, stringhe sporche, None) in float.
-    Essenziale per evitare crash nel frontend.
-    """
     try:
         if valore is None: return 0.0
         if isinstance(valore, (int, float, Decimal)):
             return float(valore)
-        # Pulizia stringhe (es. "10,5 km")
         s = str(valore).replace(',', '.') 
         s = re.sub(r'[^\d.]', '', s)
         if not s: return 0.0
@@ -54,7 +49,7 @@ def registra_viaggio(username, co2, km, mezzo, start, end):
             'username': user_clean,           
             'timestamp': timestamp_now,       
             'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'co2': Decimal(str(co2)), # Salva come Decimal per precisione DB
+            'co2': Decimal(str(co2)), 
             'km': Decimal(str(km)),
             'mezzo': str(mezzo),
             'partenza': str(start),
@@ -76,7 +71,6 @@ def get_storico_completo(username):
         storico_pulito = []
         for v in items:
             viaggio = v.copy()
-            # CONVERSIONE FORZATA A FLOAT
             viaggio['co2'] = safe_float(viaggio.get('co2'))
             viaggio['km'] = safe_float(viaggio.get('km'))
             storico_pulito.append(viaggio)
@@ -95,18 +89,34 @@ def genera_wrapped(username):
         
         if not viaggi: return None
 
-        totale_co2 = sum(v['co2'] for v in viaggi)
-        totale_km = sum(v['km'] for v in viaggi)
-        
+        # --- FIX CALCOLO RISPARMIO NEL WRAPPED ---
+        totale_km = 0
+        totale_risparmio = 0
+        CO2_AUTO_STANDARD = 0.120
+
         counts = {}
+
         for v in viaggi:
+            km = safe_float(v.get('km'))
+            co2_emessa = safe_float(v.get('co2'))
             m = v.get('mezzo', 'sconosciuto')
+            
+            # Statistiche base
+            totale_km += km
             counts[m] = counts.get(m, 0) + 1
+
+            # Calcolo Risparmio
+            co2_se_fosse_auto = km * CO2_AUTO_STANDARD
+            risparmio = co2_se_fosse_auto - co2_emessa
+            if risparmio < 0: risparmio = 0
+            
+            totale_risparmio += risparmio
+
         best_mezzo = max(counts, key=counts.get) if counts else "Nessuno"
 
         return {
             "viaggi_totali": len(viaggi),
-            "co2_risparmiata": round(totale_co2, 2),
+            "co2_risparmiata": round(totale_risparmio, 2), # ORA È GIUSTO
             "km_totali": round(totale_km, 2),
             "mezzo_preferito": best_mezzo
         }
@@ -120,21 +130,34 @@ def get_classifica_risparmio():
         data = response.get('Items', [])
         user_stats = {}
         
+        CO2_AUTO_STANDARD = 0.120 
+
         for d in data:
             u = d.get('username', 'anonimo')
-            val_co2 = safe_float(d.get('co2')) 
+            val_co2_emessa = safe_float(d.get('co2')) 
+            val_km = safe_float(d.get('km'))
+
+            # --- LA LOGICA CORRETTA ---
+            # 1. Quanto inquina un'auto normale per fare quei km?
+            baseline_auto = val_km * CO2_AUTO_STANDARD
             
+            # 2. Quanto ho risparmiato io? (Auto - Le mie emissioni)
+            risparmio = baseline_auto - val_co2_emessa
+            
+            # 3. Niente numeri negativi (se inquini più dell'auto prendi 0)
+            if risparmio < 0: risparmio = 0
+
             if u not in user_stats: user_stats[u] = 0.0
-            user_stats[u] += val_co2
+            user_stats[u] += risparmio
             
         classifica = []
         for user, totale in user_stats.items():
             totale_round = round(totale, 2)
             classifica.append({
                 "username": user,
-                "co2": totale_round,          
+                "co2": totale_round,          # Mostra il risparmio
                 "risparmio": totale_round,    
-                "score": int(totale_round),
+                "score": int(totale_round * 10), 
                 "regione": "Global",
                 "avatar": user[0].upper() if user else "?"
             })
