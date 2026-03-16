@@ -1,0 +1,8 @@
+# Ignora le cartelle pesanti di node e python
+node_modules/
+__pycache__/
+*.pyc
+# Ignora file di sistema e log
+.DS_Store
+*.log
+.env

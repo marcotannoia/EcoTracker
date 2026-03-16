@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/venv
+    env_file:
+      - ./backend/.env
+    environment:
+      - FLASK_ENV=development
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"  
+    volumes:
+      - ./frontend:/app         
+      - /app/node_modules      
+    stdin_open: true    # uso stdin e tty cosi vedo live le modifiche        
+    tty: true                   
+    depends_on:
+      - backend

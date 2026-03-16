@@ -1,0 +1,58 @@
+:root {
+  --bg-color: #e6f2eb;          
+  --text-color: #022c22;        
+  --card-bg: #ffffff;           
+  --input-bg: #f8fafc;         
+ --border-color: #15803d;      
+  --accent-color: #16a34a;     
+  --shadow-color: rgba(21, 128, 61, 0.15); 
+}
+
+
+body.dark-mode {
+  --bg-color: #0f172a;          
+  --text-color: #f1f5f9;        
+  --card-bg: rgba(15, 23, 42, 0.6); 
+  --input-bg: #1e293b;
+  --border-color: #334155;      
+  --accent-color: #34D399;      
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.search-panel, .leaderboard-panel, .rank-card, .profile-card {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+  backdrop-filter: blur(12px); 
+  box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color);
+}
+
+input, select, textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+button {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+}

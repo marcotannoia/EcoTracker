@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; 
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root { --transition-speed: 0.3s; }
+
+/* --- DARK THEME (Tuo Originale + Nuove Variabili) --- */
+.dark-theme {
+  --text-main: #e8f5e9;                  
+  --text-secondary: #bbf7d0;             
+  --card-bg: rgba(6, 24, 14, 0.6);       
+  --card-border: 1px solid rgba(255,255,255,0.1); 
+  --input-bg: rgba(0, 0, 0, 0.4);
+  --input-text: #ffffff;
+  --input-border: 1px solid rgba(255,255,255,0.2);
+  --btn-primary: #22c55e;
+  --btn-text: #000000;
+  --btn-border: none;
+  
+  /* NUOVE VARIABILI AGGIUNTE PER FIXARE IL PROFILO */
+  --trip-card-bg: rgba(255, 255, 255, 0.03);
+  --trip-card-hover: rgba(255, 255, 255, 0.08);
+  --logout-border: rgba(239, 68, 68, 0.5);
+  --logout-text: #fca5a5;
+  --glass-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* --- LIGHT THEME (Tuo Originale + Nuove Variabili) --- */
+.light-theme {
+  --text-main: #022c22; 
+  --text-secondary: #064e3b;
+  --card-bg: rgba(236, 253, 245, 0.85); 
+  --card-border: 2px solid #000000; /* Bordo nero stile "neobrutalism" */
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-text: #000000;
+  --input-border: 2px solid #000000;
+  --btn-primary: #10b981;
+  --btn-text: #ffffff;
+  --btn-border: 2px solid #000000;
+
+  /* NUOVE VARIABILI AGGIUNTE PER FIXARE IL PROFILO */
+  --trip-card-bg: rgba(255, 255, 255, 0.6); /* Più visibile sul chiaro */
+  --trip-card-hover: rgba(255, 255, 255, 0.9);
+  --logout-border: #ef4444; /* Rosso solido per visibilità */
+  --logout-text: #b91c1c;   /* Rosso scuro per il testo */
+  --glass-shadow: 0 20px 40px -10px rgba(6, 78, 59, 0.15);
+}
+
+/* --- LAYOUT TUO ORIGINALE (INVARIATO) --- */
+.app-shell {
+  width: 100%; 
+  height: 100vh; 
+  font-family: 'Space Grotesk', sans-serif;
+  background-color: transparent; 
+  color: var(--text-main);
+  overflow-y: auto; 
+  overflow-x: hidden; 
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-body {
+  width: 100%;
+  min-height: 100%; 
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.card, .box-container, input, button, select {
+  transition: all var(--transition-speed) ease;
+}
+
+input, select, textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border: var(--input-border) !important;
+}
+
+button {
+  border: var(--btn-border) !important;
+}
+
+.fade-in { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .app-shell, .page-body {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  .page-body {
+    padding-bottom: 120px !important; 
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  h1 { font-size: 1.8rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  p, input, button { font-size: 0.95rem !important; }
+}
+
+body:has(.results-overlay) .dock-container,
+body:has(.results-overlay) .dock {
+  display: none !important;
+}
+
+body:has(.results-overlay) .page-body,
+body:has(.results-overlay) .app-shell,
+body:has(.results-overlay) main {
+  padding-bottom: 0 !important;
+  overflow: hidden !important; 
+}
