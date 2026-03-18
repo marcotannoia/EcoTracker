@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import './Profilo.css';
+
 
 const URL_SERVER = 'https://api.ecotracker.it';
 
@@ -87,98 +87,6 @@ function PaginaProfilo({ user: utenteLoggato, setUser: setUtenteLoggato }) {
         <p className="brand-subtitle">IL TUO IMPATTO</p>
       </header>
 
-      <main className="hero-content">
-        <div className="profile-card-container">
-          <div className="profile-card fade-in">
-            
-            {/* SX: Profilo */}
-            <div className="profile-left-col">
-              <div className="profile-avatar">{ottieniIniziale()}</div>
-              <div className="profile-identity">
-                <h2>@{utenteLoggato?.username}</h2>
-                {utenteLoggato?.regione && (
-                  <span className="region-badge">{utenteLoggato.regione}</span>
-                )}
-              </div>
-              <div className="profile-actions">
-                <button className="logout-btn" onClick={eseguiLogout}>Disconnettiti</button>
-              </div>
-            </div>
-
-            {/* DX: Dati */}
-            <div className="profile-right-col">
-              <h3 className="stats-title">Statistiche Generali</h3>
-              <div className="stats-grid">
-                <div className="stat-item">
-                  <span className="stat-icon">🚀</span>
-                  <span className="stat-value">{statistiche.totaleViaggi}</span>
-                  <span className="stat-label">Viaggi Totali</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-icon">🗺️</span>
-                  <span className="stat-value">{statistiche.totaleKm}</span>
-                  <span className="stat-label">Km Percorsi</span>
-                </div>
-                <div className="stat-item highlight-green">
-                  <span className="stat-icon">🌱</span>
-                  <span className="stat-value">
-                    {statistiche.totaleCo2} <small>kg</small>
-                  </span>
-                  <span className="stat-label">CO2 Risparmiata</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-icon">🌳</span>
-                  <span className="stat-value">{statistiche.alberi}</span>
-                  <span className="stat-label">Alberi Equivalenti</span>
-                </div>
-              </div>
-
-              <div className="storico-recente-section">
-                <div className="section-header-row">
-                    <h3 className="stats-title">Ultimi Viaggi</h3>
-                    {listaViaggi.length > 0 && (
-                        <div className="view-all-link" onClick={() => naviga('/storico')}>
-                            Vedi tutti →
-                        </div>
-                    )}
-                </div>
-
-                {listaViaggi.length === 0 ? (
-                  <p className="no-data-msg">Nessun viaggio registrato ancora.</p>
-                ) : (
-                  <div className="lista-viaggi-container">
-                    {listaViaggi.slice(0, 4).map((viaggio, index) => (
-                      <div key={index} className="mini-trip-card">
-                        <div className="mini-trip-icon">
-                          {viaggio.mezzo === 'veicolo_elettrico' ? '⚡' : 
-                           viaggio.mezzo === 'piedi' ? '👣' : 
-                           viaggio.mezzo === 'bike' ? '🚲' : 
-                           viaggio.mezzo === 'public_bus' ? '🚌' : '🚗'}
-                        </div>
-                        <div className="mini-trip-info">
-                          <div className="mini-row-top">
-                            <span className="mini-route">
-                               {viaggio.partenza?.split(',')[0]} → {viaggio.arrivo?.split(',')[0]}
-                            </span>
-                          </div>
-                          <div className="mini-row-bottom">
-                            <span className="mini-date">
-                               {viaggio.data?.split(' ')[0]}
-                            </span>
-                            <span className="mini-km-badge">
-                              {parseFloat(viaggio.km).toFixed(1)} km
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
   );
 }

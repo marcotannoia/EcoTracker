@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './NuovoViaggio.css'; 
+ 
 
 const INDIRIZZO_SERVER = 'https://api.ecotracker.it';
 
@@ -86,108 +86,9 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
   };
 
   return (
-    <div className="newtrip-page">
-      
-      <header className="hero-header fade-in">
-        <h1 className="brand-title">EcoTrack</h1>
-        <p className="brand-subtitle">Monitora i tuoi progressi</p>
-      </header>
-
-      <main className="hero-content">
-        <div className="search-card-container">
-          <section className="main-search-card fade-in">
-            <h2 className="card-title">Trova il tuo percorso</h2>
-            
-            <div className="input-fields">
-              <input
-                className="card-input"
-                placeholder="Partenza (es. Bari)"
-                value={datiItinerario.partenza}
-                onChange={e => aggiornaInput('partenza', e.target.value)}
-              />
-              <input
-                className="card-input"
-                placeholder="Destinazione (es. Milano)"
-                value={datiItinerario.destinazione}
-                onChange={e => aggiornaInput('destinazione', e.target.value)}
-              />
-            </div>
-
-            <div className="vehicle-selector">
-              {listaVeicoliDisponibili.map(veicolo => (
-                <button
-                  key={veicolo.id}
-                  onClick={() => setIdMezzoSelezionato(veicolo.id)}
-                  className={`v-btn ${idMezzoSelezionato === veicolo.id ? 'active' : ''}`}
-                >
-                  <div className="v-circle">
-                    {GraficaMezzi[veicolo.id] || <span>🚗</span>}
-                  </div>
-                  <span className="v-label">{veicolo.label || veicolo.id}</span>
-                </button>
-              ))}
-            </div>
-
-            <button onClick={avviaCalcoloPercorso} className="cta-search-btn">
-              Calcola Percorso
-            </button>
-          </section>
-        </div>
-        <div className="leaf-decoration"></div>
-      </main>
-
-      {/* Overlay Risultati */}
-      {risultatoCalcolo && (
-        <section className="results-overlay fade-in">
-          <div className="results-content-card">
-            <button className="close-icon" onClick={() => setRisultatoCalcolo(null)}>✕</button>
-            
-            <div className="res-left">
-               <div className="res-header-mini">
-                 <span>TRATTA CALCOLATA</span>
-                 <h3>
-                   {risultatoCalcolo.start_address} <span className="arrow-green">➔</span> {risultatoCalcolo.end_address}
-                 </h3>
-               </div>
-               
-               {risultatoCalcolo.map_url && (
-                <div className="res-map-big">
-                  <iframe 
-                    title="Mappa Percorso" 
-                    width="100%" 
-                    height="100%" 
-                    src={risultatoCalcolo.map_url} 
-                    style={{border:0}}
-                  ></iframe>
-                </div>
-              )}
-            </div>
-
-            <div className="res-right">
-              <div className="stat-box co2-box">
-                <p className="stat-label">IMPATTO CO₂</p>
-                <span className="stat-giant">{risultatoCalcolo.emissioni_co2}</span>
-                <span className="stat-sub">Stima basata sul mezzo selezionato</span>
-              </div>
-
-              <div className="stat-box tree-box">
-                <div className="tree-icon-bg">🌳</div>
-                <div>
-                   <p className="stat-label">COMPENSAZIONE NATURALE</p>
-                   <span className="stat-desc">
-                     {infoAlberi || "Nessun impatto rilevante, ottimo lavoro!"}
-                   </span>
-                </div>
-              </div>
-
-              <button className="new-search-btn" onClick={() => setRisultatoCalcolo(null)}>
-                Effettua nuova ricerca
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-    </div>
+    <div className={`pagina-nuovo-viaggio ${theme}`}>
+      <h1>Calcola il tuo percorso ecologico</h1>
+      </div>
   );
 }
 

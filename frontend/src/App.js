@@ -10,8 +10,7 @@ import PaginaRiepilogo from './pages/Wrapped';
 import PaginaStoricoCompleto from './pages/PaginaStoricoCompleto'; // <--- NUOVO IMPORT
 
 /* --- COMPONENTI UI --- */
-import Iridescence from './components/Iridescence'; 
-import Dock from './components/Dock'; 
+
 import './App.css'; 
 
 const INDIRIZZO_API = 'https://api.ecotracker.it'; 
@@ -93,8 +92,7 @@ function ContenutoApp() {
 
   return (
     <div className={`app-shell ${tema}-theme`}>
-      <Iridescence color={[0.1, 0.3, 0.2]} mouseReact={false} amplitude={0.1} speed={0.2} />
-
+      
       <main className="page-body" style={{ position: 'relative', zIndex: 1, paddingBottom: '100px' }}>
         <Routes>
           <Route path="/" element={<PaginaNuovoViaggio user={utenteLoggato} theme={tema} toggleTheme={alternaTema} />} />
@@ -113,7 +111,7 @@ function ContenutoApp() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
-      <Dock items={elementiMenu} />
+     
     </div>
   );
 }

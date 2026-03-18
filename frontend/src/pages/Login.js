@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './Login.css';
 
 const URL_SERVER = 'https://api.ecotracker.it';
 
@@ -76,81 +75,6 @@ function PaginaAccesso({ setUser: impostaUtenteLoggato }) {
         <h1 className="brand-title">EcoTrack</h1>
         <p className="brand-subtitle">Unisciti al cambiamento</p>
       </header>
-
-      <main className="hero-content">
-        <div className="search-card-container">
-          <section className="main-search-card fade-in">
-            <h2 className="card-title">{titoloCard}</h2>
-            
-            <form onSubmit={gestisciAuth} className="login-form-stack">
-              
-              <input 
-                className="card-input" 
-                placeholder="Username" 
-                value={datiInput.username} 
-                onChange={e => aggiornaCampo('username', e.target.value)} 
-                required 
-              />
-              
-              {modalitaRegistrazione && (
-                <>
-                  <input 
-                    className="card-input" 
-                    type="email" 
-                    placeholder="Email" 
-                    value={datiInput.email} 
-                    onChange={e => aggiornaCampo('email', e.target.value)} 
-                    required 
-                  />
-                  <input 
-                    className="card-input" 
-                    placeholder="Regione (es. Puglia)" 
-                    value={datiInput.regione} 
-                    onChange={e => aggiornaCampo('regione', e.target.value)} 
-                    required 
-                  />
-                </>
-              )}
-
-              <input 
-                className="card-input" 
-                type="password" 
-                placeholder="Password" 
-                value={datiInput.password} 
-                onChange={e => aggiornaCampo('password', e.target.value)} 
-                required 
-              />
-
-              {/* MESSAGGI (Già posizionati correttamente sopra il bottone) */}
-              {messaggioErrore && (
-                <div className="login-error-box">⚠️ {messaggioErrore}</div>
-              )}
-              {messaggioSuccesso && (
-                <div className="login-success-box">✅ {messaggioSuccesso}</div>
-              )}
-
-              <button className="cta-search-btn" disabled={staCaricando}>
-                {staCaricando ? 'Attendi...' : (modalitaRegistrazione ? 'Registrati' : 'Accedi')}
-              </button>
-            </form>
-
-            <div className="login-toggle-area">
-              <p>{modalitaRegistrazione ? 'Hai già un account?' : 'Non hai un account?'}</p>
-              <button 
-                onClick={() => {
-                  setModalitaRegistrazione(!modalitaRegistrazione);
-                  setMessaggioErrore('');
-                  setMessaggioSuccesso('');
-                }} 
-                className="toggle-link-btn"
-              >
-                {modalitaRegistrazione ? 'Vai al Login' : 'Registrati ora'}
-              </button>
-            </div>
-
-          </section>
-        </div>
-      </main>
     </div>
   );
 }
