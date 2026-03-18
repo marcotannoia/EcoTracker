@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
- 
 
 const INDIRIZZO_SERVER = 'https://api.ecotracker.it';
 
@@ -14,16 +13,12 @@ const GraficaMezzi = {
 
 function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
   
-  // stati default
   const [datiItinerario, setDatiItinerario] = useState({ partenza: '', destinazione: '' });
   const [idMezzoSelezionato, setIdMezzoSelezionato] = useState('car');
   const [listaVeicoliDisponibili, setListaVeicoliDisponibili] = useState([]);
-  
-  // stati risultati
   const [risultatoCalcolo, setRisultatoCalcolo] = useState(null); 
   const [infoAlberi, setInfoAlberi] = useState(null);
 
-  // Carico i veicoli dal server
   useEffect(() => {
     fetch(`${INDIRIZZO_SERVER}/api/veicoli`)
       .then(risposta => risposta.json())
@@ -32,33 +27,24 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
   }, []);
 
   const avviaCalcoloPercorso = async () => {
-    setRisultatoCalcolo(null); // reset
+    setRisultatoCalcolo(null); 
     setInfoAlberi(null);
 
     try {
-      const pacchettoDati = { 
-        start: datiItinerario.partenza,
-        end: datiItinerario.destinazione,
-        mezzo: idMezzoSelezionato
-      };
+      const pacchettoDati = { start: datiItinerario.partenza, end: datiItinerario.destinazione, mezzo: idMezzoSelezionato };
 
       const rispostaNav = await fetch(`${INDIRIZZO_SERVER}/api/navigazione`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // <--- FONDAMENTALE: Invia il cookie al server
+        credentials: 'include', 
         body: JSON.stringify(pacchettoDati)
       });
 
       const datiNavigazione = await rispostaNav.json();
 
       if (datiNavigazione.ok) {
-        
-        // --- MODIFICA EFFETTUATA: RIMOSSO BLOCCO ALERT ---
-        // Ora mostriamo semplicemente i risultati, che l'utente sia loggato o meno.
         setRisultatoCalcolo(datiNavigazione); 
-        
         const valoreCO2 = parseFloat(datiNavigazione.emissioni_co2); 
-        
         if (!isNaN(valoreCO2) && valoreCO2 > 0) { 
             try {
                 const rispostaAlberi = await fetch(`${INDIRIZZO_SERVER}/api/calcolo-alberi`, {
@@ -68,9 +54,7 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
                 });
                 const datiAlberi = await rispostaAlberi.json();
                 if (datiAlberi.ok) setInfoAlberi(datiAlberi.messaggio);
-            } catch (err) { 
-              console.error("Errore API alberi:", err);
-            }
+            } catch (err) { console.error("Errore API alberi:", err); }
         }
       } else { 
         alert(datiNavigazione.errore || "Errore nel calcolo del percorso");
@@ -86,9 +70,61 @@ function PaginaNuovoViaggio({ user: utente, theme, toggleTheme }) {
   };
 
   return (
-    <div className={`pagina-nuovo-viaggio ${theme}`}>
-      <h1>Calcola il tuo percorso ecologico</h1>
+    <div className="min-h-screen bg-gray-900 text-white p-6 pt-12">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-extrabold text-green-400 mb-8 text-center">Calcola Percorso</h1>
+        
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 space-y-5">
+          <input 
+            className="w-full bg-gray-900 px-4 py-3 rounded-lg border border-gray-600 focus:border-green-500 outline-none transition-colors" 
+            placeholder="Punto di partenza" 
+            value={datiItinerario.partenza} onChange={e => aggiornaInput('partenza', e.target.value)} 
+          />
+          <input 
+            className="w-full bg-gray-900 px-4 py-3 rounded-lg border border-gray-600 focus:border-green-500 outline-none transition-colors" 
+            placeholder="Destinazione" 
+            value={datiItinerario.destinazione} onChange={e => aggiornaInput('destinazione', e.target.value)} 
+          />
+          
+          <div className="flex justify-between gap-2 mt-4">
+            {Object.keys(GraficaMezzi).map(mezzo => (
+              <button 
+                key={mezzo}
+                onClick={() => setIdMezzoSelezionato(mezzo)}
+                className={`p-4 rounded-xl flex-1 flex justify-center items-center transition-all ${idMezzoSelezionato === mezzo ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+              >
+                {GraficaMezzi[mezzo]}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={avviaCalcoloPercorso} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg mt-6 transition-colors shadow-md">
+            Calcola CO2
+          </button>
+        </div>
+
+        {risultatoCalcolo && (
+          <div className="mt-8 bg-gray-800 p-6 rounded-2xl border border-green-500/50 text-center shadow-lg fade-in">
+            <h3 className="text-2xl font-bold text-green-400 mb-4">Risultato Itinerario</h3>
+            <div className="flex justify-around items-center mb-4">
+               <div>
+                 <p className="text-gray-400 text-sm">Distanza</p>
+                 <p className="text-white font-bold text-xl">{risultatoCalcolo.distanza_km} km</p>
+               </div>
+               <div>
+                 <p className="text-gray-400 text-sm">Emissione</p>
+                 <p className="text-white font-bold text-xl">{risultatoCalcolo.emissioni_co2} kg</p>
+               </div>
+            </div>
+            {infoAlberi && (
+               <div className="mt-4 p-3 bg-green-900/30 rounded-lg text-green-300 border border-green-800/50">
+                  🌱 {infoAlberi}
+               </div>
+            )}
+          </div>
+        )}
       </div>
+    </div>
   );
 }
 

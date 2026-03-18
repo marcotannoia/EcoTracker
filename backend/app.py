@@ -12,6 +12,7 @@ from mezzo import opzione_trasporto
 import login as auth_service 
 import storico
 from alberiCO2 import alberiCO2
+from riciclo import riciclo_bp
 
 # --- 1. CONFIGURAZIONE JSON PER DYNAMODB ---
 class DynamoDBEncoder(DefaultJSONProvider):
@@ -21,6 +22,7 @@ class DynamoDBEncoder(DefaultJSONProvider):
         return super().default(obj)
 
 app = Flask(__name__)
+app.register_blueprint(riciclo_bp)
 app.json = DynamoDBEncoder(app)
 
 # --- 2. CONFIGURAZIONE PROXY (Per Render) ---
