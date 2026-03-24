@@ -4,7 +4,7 @@ import requests
 URL_FLASK = "http://127.0.0.1:5000/api/valida-documento"
 
 # Il nome del PDF che hai nella cartella (cambialo con uno vero!)
-NOME_FILE = "prova.pdf" 
+NOME_FILE = "fattura.pdf" 
 
 try:
     with open(NOME_FILE, "rb") as f:
