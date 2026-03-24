@@ -16,45 +16,42 @@ from riciclo import riciclo_bp
 
 # --- 1. CONFIGURAZIONE JSON PER DYNAMODB ---
 class DynamoDBEncoder(DefaultJSONProvider):
-    def default(self, obj):
-        if isinstance(obj, Decimal):
-            return int(obj) if obj % 1 == 0 else float(obj)
-        return super().default(obj)
+    def default(self, obj): #obj sarebbe un oggetto che flask non capisce
+        if isinstance(obj, Decimal): # chiede se e di tipo decimale
+            return int(obj) if obj % 1 == 0 else float(obj) # se e un numero intero lo converte in int, altrimenti in float
+        return super().default(obj) # se non e un decimale, usa il comportamento di default (che potrebbe sollevare un errore se non e serializzabile)s
 
 app = Flask(__name__)
 app.register_blueprint(riciclo_bp)
 app.json = DynamoDBEncoder(app)
 
 # --- 2. CONFIGURAZIONE PROXY (Per Render) ---
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # da documentazione
 
 # --- 3. CONFIGURAZIONE COOKIE E SESSIONE ---
 app.secret_key = os.environ.get("SECRET_KEY", "chiave-segreta-super-sicura-e-lunga")
 
-# Impostazioni vitali per i cookie cross-domain (Backend Render <-> Frontend Custom Domain)
-app.config['SESSION_COOKIE_SAMESITE'] = 'None' 
-app.config['SESSION_COOKIE_SECURE'] = True      
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  #serve per la comunicazione cross-domain 
+app.config['SESSION_COOKIE_SECURE'] = True      #serve per la comunicazione sicura (HTTPS)
 app.config['SESSION_COOKIE_HTTPONLY'] = True    
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
-# FONDAMENTALE PER IOS E SAFARI:
-app.config['SESSION_COOKIE_DOMAIN'] = '.ecotracker.it'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # serve per rimanere loggati
+app.config['SESSION_COOKIE_DOMAIN'] = '.ecotracker.it' 
 
 # --- 4. CORS (ORIGINI AUTORIZZATE) ---
 
-# Lista di TUTTI i domini che possono accedere al backend
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",                # Test Locale
-    "https://www.ecotracker.it",            # Tuo dominio (con www)
-    "https://ecotracker.it",                # Tuo dominio (senza www)
-    "https://dgyjenq1r43lo.cloudfront.net"  # Vecchio Cloudfront (opzionale)
+ALLOWED_ORIGINS = [ 
+    "http://localhost:3000",                
+    "https://www.ecotracker.it",           
+    "https://ecotracker.it",               
+    "https://dgyjenq1r43lo.cloudfront.net"  
 ]
 
-# Configurazione CORS
+
 CORS(app, 
-     resources={r"/api/*": {
+     resources={r"/api/*": { # usando la regex vado a dire che tutte le rotte che iniziano con /api/ possono essere chiamate da questi domini
          "origins": ALLOWED_ORIGINS
      }}, 
-     supports_credentials=True)
+     supports_credentials=True) #Permette al browser di includere nelle richieste verso il server le credenziali di autenticazione
 
 # --- 5. ROTTE API ---
 
@@ -258,6 +255,15 @@ def api_classifica():
         return jsonify({"ok": True, "classifica": data})
     except Exception as e:
         return jsonify({"ok": False, "classifica": []})
-    
+
+
+@app.route('/api/analisi/<filename>', methods=['GET'])
+def get_analisi(filename):
+    # Chiama DynamoDB
+    response = table.get_item(Key={'file_name': filename})
+    if 'Item' in response:
+        return jsonify(response['Item']), 200
+    return jsonify({"status": "processing"}), 202
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
