@@ -1,26 +1,34 @@
 import requests
 
-# L'indirizzo del tuo Flask locale
 URL_FLASK = "http://127.0.0.1:5000/api/valida-documento"
+# Metti qui il nome esatto della tua foto o scansione
+FILE_NAME = "ricevuta.pdf" 
+DATI_UTENTE = {"user_id": "marco_tester_2026"}
 
-# Il nome del PDF che hai nella cartella (cambialo con uno vero!)
-NOME_FILE = "fattura.pdf" 
+def esegui_test():
+    try:
+        with open(FILE_NAME, "rb") as f:
+            files = {"file": f}
+            print(f"🚀 Invio della RICEVUTA ({FILE_NAME}) al server...")
+            
+            # Invio file + ID utente
+            response = requests.post(URL_FLASK, files=files, data=DATI_UTENTE)
+            dati = response.json()
+            
+            print(f"\n--- RISPOSTA DEL SERVER (Status: {response.status_code}) ---")
+            
+            # Stampiamo la risposta umana in modo pulito!
+            if dati.get('ok'):
+                print(f"🤖 EcoTracker AI dice:\n>> {dati['analisi'].get('spiegazione_umana', 'Nessuna spiegazione fornita.')}\n")
+                print(f"🏆 Badge Sbloccato: {'SÌ! 🎉' if dati.get('badge_sbloccabile') else 'No ❌'}")
+            else:
+                print(f"❌ Errore del sistema: {dati.get('errore')}")
+                
+            # Se vuoi vedere comunque i dati grezzi:
+            # print("\n[Dati Tecnici JSON]:", dati)
+            
+    except Exception as e:
+        print(f"❌ Errore: {e}")
 
-try:
-    with open(NOME_FILE, "rb") as f:
-        # Prepariamo il file per l'invio
-        files = {'file': (NOME_FILE, f, 'application/pdf')}
-        
-        print(f"🚀 Spedisco {NOME_FILE} al server Flask...")
-        
-        # Facciamo la chiamata POST
-        response = requests.post(URL_FLASK, files=files)
-        
-        # Vediamo che succede
-        print("\n--- RISPOSTA DEL SERVER ---")
-        print(response.json())
-        
-except FileNotFoundError:
-    print(f"❌ Fr, non trovo il file '{NOME_FILE}'! Mettilo nella stessa cartella dello script.")
-except Exception as e:
-    print(f"❌ Errore: {e}")
+if __name__ == "__main__":
+    esegui_test()
